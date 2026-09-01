@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%A6</text></svg>">
+<title>JK888 Packing — งานแพ็คประจำวัน</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#FBF2E2; --surface:#FFFFFF; --surface-kraft:#F3E4C8;
+    --ink:#4A3826; --ink-soft:#93805F; --ink-faint:#C9B594;
+    --border:rgba(74,56,38,0.15);
+    --tape:#FF7A55; --tape-deep:#E2573A; --tape-soft:#FFE3D3; --on-tape:#FFFFFF;
+    --stamp:#5FA980; --stamp-soft:#DCEEE2; --stamp-deep:#3F7D5C;
+    --radius-lg:22px; --radius-md:16px; --radius-pill:999px;
+    --font-display:'Mitr',sans-serif; --font-body:'Sarabun',sans-serif; --font-mono:'JetBrains Mono',monospace;
+    --text-danger:var(--tape-deep); --text-muted:var(--ink-faint);
+    --bg-success:var(--stamp-soft); --border-success:var(--stamp); --text-success:var(--stamp-deep);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#241C13; --surface:#332619; --surface-kraft:#3E2F1E;
+      --ink:#F6EBDB; --ink-soft:#CBB693; --ink-faint:#8D7856;
+      --border:rgba(246,235,219,0.14);
+      --tape:#FF8F6E; --tape-deep:#FFA484; --tape-soft:#4A3323; --on-tape:#2A1C10;
+      --stamp:#7FC29E; --stamp-soft:#25392E; --stamp-deep:#9FDABB;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:16px; -webkit-font-smoothing:antialiased; }
+  .disp{font-family:var(--font-display);}
+  .mono{font-family:var(--font-mono);}
+  input,select{ height:50px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:var(--surface); color:var(--ink); padding:0 16px; font-size:16px; font-family:inherit; width:100%; }
+  input::placeholder{color:var(--ink-faint);}
+  input:focus,select:focus{outline:2px solid var(--tape); outline-offset:1px;}
+  button{font-family:inherit; cursor:pointer;}
+  label{font-size:14.5px; font-weight:600; color:var(--ink-soft); display:block; margin:0 0 7px;}
+
+  .shell{display:flex; min-height:100vh;}
+  .sidebar{width:220px; flex-shrink:0; background:var(--surface-kraft); padding:24px 16px; border-right:1.5px solid var(--border);}
+  @media (max-width:768px){ .shell{flex-direction:column;} .sidebar{width:100%; display:flex; align-items:center; gap:14px; padding:14px 18px; border-right:none; border-bottom:1.5px solid var(--border);} .sidebar .navlist{display:flex; flex-direction:row; gap:6px; overflow-x:auto;} .sidebar .navlabel{white-space:nowrap;} }
+
+  .brand{display:flex; align-items:center; gap:10px; margin-bottom:24px; text-decoration:none; color:inherit; position:relative;}
+  @media (max-width:768px){ .brand{margin-bottom:0;} }
+  .brand-tape{position:absolute; top:-16px; left:-6px; width:52px; height:22px; background:var(--tape); transform:rotate(-8deg); opacity:0.9; border-radius:2px;}
+  @media (max-width:768px){ .brand-tape{display:none;} }
+  .brand-icon{font-size:26px; line-height:1; position:relative; z-index:1;}
+  .brand-name{font-family:var(--font-display); font-size:15.5px; font-weight:700; margin:0; line-height:1.3; position:relative; z-index:1;}
+
+  .navlist{display:flex; flex-direction:column; gap:5px;}
+  .navitem{display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:var(--radius-md); text-decoration:none; color:var(--ink-soft); font-family:var(--font-display); font-size:15px; font-weight:500; white-space:nowrap;}
+  .navitem .navicon{font-size:18px;}
+  .navitem.active{background:var(--tape); color:var(--on-tape);}
+
+  .main{flex:1; padding:28px 30px; min-width:0;}
+  @media (max-width:768px){ .main{padding:18px;} }
+  .pagetitle{font-family:var(--font-display); font-size:26px; font-weight:700; margin:0 0 4px;}
+  .pagesub{font-size:15px; color:var(--ink-soft); margin:0 0 24px;}
+
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
+  .tab-btn{font-family:var(--font-display); font-size:15px; font-weight:600; padding:12px 22px; border-radius:var(--radius-pill); border:1.5px solid var(--border); background:var(--surface); color:var(--ink-soft);}
+  .tab-btn.active{background:var(--tape); color:var(--on-tape); border-color:var(--tape);}
+
+  .card{background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:22px; margin-bottom:18px;}
+  .section-label{font-family:var(--font-display); font-size:18px; font-weight:600; margin:0 0 14px; display:flex; align-items:center; gap:8px;}
+  .hint{font-size:14px; color:var(--ink-soft); margin:0 0 12px; line-height:1.5;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
+  @media (max-width:640px){ .row2, .row3{grid-template-columns:1fr;} }
+
+  .file-btn{background:var(--surface-kraft); border:1.5px dashed var(--border); border-radius:var(--radius-md); padding:0 16px; font-size:15px; font-weight:500; color:var(--ink-soft); display:flex; align-items:center; gap:8px; cursor:pointer; justify-content:center; height:50px;}
+  input[type=file]{display:none;}
+  .suggest-wrap{position:relative;}
+  .suggest-panel{position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-md); box-shadow:0 10px 28px rgba(74,56,38,0.16); max-height:240px; overflow-y:auto; z-index:50;}
+  .suggest-item{padding:12px 16px; font-size:15.5px; cursor:pointer;}
+  .suggest-item:hover, .suggest-item.hl{background:var(--tape-soft); color:var(--tape-deep);}
+
+  .btn-main{background:var(--tape); color:var(--on-tape); border:none; border-radius:var(--radius-pill); height:52px; padding:0 26px; font-family:var(--font-display); font-size:16px; font-weight:600; width:auto; box-shadow:0 4px 14px rgba(226,87,58,0.28);}
+  .btn-main:active{transform:translateY(1px);}
+  .btn-dark{background:var(--ink); color:var(--surface); border:none; border-radius:var(--radius-pill); height:52px; padding:0 26px; font-family:var(--font-display); font-size:16px; font-weight:600; width:auto;}
+  .btn-ghost{border:1.5px solid var(--border); background:var(--surface); color:var(--ink-soft); border-radius:var(--radius-pill); height:44px; padding:0 18px; font-size:14.5px; font-weight:500; width:auto;}
+
+  table{width:100%; border-collapse:collapse; font-size:15px;}
+  th{text-align:left; padding:10px; color:var(--ink-soft); font-weight:600; border-bottom:1.5px solid var(--border); white-space:nowrap; font-size:13.5px;}
+  td{padding:10px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  td input{height:42px; font-size:14.5px;}
+  .empty{text-align:center; padding:32px 20px; color:var(--ink-faint); font-size:15px;}
+  .toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; flex-wrap:wrap;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; margin-bottom:18px;}
+  .kpi-card{border-radius:var(--radius-lg); padding:18px; background:var(--stamp-soft); border:1.5px solid transparent;}
+  .kpi-label{font-size:13.5px; color:var(--stamp-deep); font-weight:600; margin:0 0 5px;}
+  .kpi-num{font-family:var(--font-display); font-size:32px; font-weight:700; margin:0; color:var(--ink);}
+
+  .found-box{border:1.5px solid var(--stamp); background:var(--stamp-soft); border-radius:var(--radius-md); padding:14px 18px; margin-bottom:8px; font-size:15px; line-height:1.7;}
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--surface); padding:14px 24px; border-radius:var(--radius-pill); font-size:15px; display:none; align-items:center; gap:10px; z-index:100; box-shadow:0 8px 24px rgba(0,0,0,0.25);}
+  .toast.show{display:flex;}
+  .toast.warn{background:var(--tape-deep);}
+
+  .month-card{background:var(--tape-soft); border:1.5px solid var(--tape); border-radius:var(--radius-lg); padding:22px;}
+  .month-card .section-label{color:var(--tape-deep);}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="pi-packing-report.html"><div class="brand-tape"></div><div class="brand-icon">📦</div><p class="brand-name">JK888<br>Packing</p></a>
+    <nav class="navlist">
+      <a class="navitem" href="pi-packing-report.html"><span class="navicon">📊</span><span class="navlabel">Report</span></a>
+      <a class="navitem active" href="pi-packing.html"><span class="navicon">✏️</span><span class="navlabel">คีย์ข้อมูลรายวัน</span></a>
+      <a class="navitem" href="pi-packing-export.html"><span class="navicon">📤</span><span class="navlabel">Export</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <p class="pagetitle">คีย์ข้อมูลรายวัน</p>
+    <p class="pagesub">บันทึกงานแพ็คประจำวัน — ใครแพ็คอะไร วันไหน กี่ชิ้น</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-ptab="manual">✏️ กรอกเอง</button>
+    <button class="tab-btn" data-ptab="products">📋 รายชื่อสินค้า</button>
+  </div>
+
+  <div id="ptab-manual">
+    <div class="card">
+      <p class="section-label">🗓️ ข้อมูลของรอบนี้</p>
+      <p class="hint">ค้างไว้จนกว่าจะเปลี่ยนหรือบันทึกจบวัน ไม่ต้องเลือกซ้ำทุกครั้ง</p>
+      <div class="row3">
+        <div><label>วันที่แพ็คเสร็จ</label><input type="date" id="manualDate"></div>
+        <div><label>คนแพ็ค</label><select id="manualPacker"></select></div>
+        <div><label>แนบรูปหลักฐาน (ถ้ามี)</label><label class="file-btn"><i class="ti ti-camera"></i><span id="manualPhotoLabel">เลือกรูป</span><input type="file" id="manualPhoto" accept="image/*"></label></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-label">➕ เพิ่มสินค้าที่แพ็ค</p>
+      <div id="orderDateRangeRow" class="row2" style="margin-bottom:10px;">
+        <div><label>วันที่มีออเดอร์ — เริ่ม</label><input type="date" id="orderDateFrom"></div>
+        <div><label>วันที่มีออเดอร์ — ถึง</label><input type="date" id="orderDateTo"></div>
+      </div>
+      <p class="hint" id="orderDateHint" style="margin-top:-2px;">เผื่อแพ็คของออเดอร์หลายวันรวมกันในรอบเดียว ใส่แค่วันเดียวก็ใส่ทั้งเริ่ม-ถึงเป็นวันเดียวกันได้</p>
+      <div class="row2" style="margin-bottom:14px;">
+        <div class="suggest-wrap"><label>ชื่อสินค้า</label><input type="text" id="manualProduct" autocomplete="off" placeholder="เช่น กล่องสบู่"><div id="productSuggest" class="suggest-panel" style="display:none;"></div></div>
+        <div><label>จำนวนที่แพ็ค</label><input type="number" id="manualQty" placeholder="เช่น 5"></div>
+      </div>
+      <button class="btn-main" id="addManualProductBtn">บันทึก 1 สินค้า</button>
+    </div>
+
+    <p class="section-label">📝 รายการที่เพิ่มไว้ในรอบนี้</p>
+    <div class="card" style="padding:0; overflow-x:auto;">
+      <table>
+        <thead><tr><th>ชื่อสินค้า</th><th>จำนวน</th><th>วันที่ออเดอร์</th><th style="width:44px;"></th></tr></thead>
+        <tbody id="manualListBody"></tbody>
+      </table>
+      <div class="empty" id="manualListEmpty">ยังไม่มีรายการ — เพิ่มสินค้าด้านบนก่อนนะ</div>
+    </div>
+    <button class="btn-dark" id="saveManualAllBtn" style="margin-top:14px;">💾 บันทึกทั้งหมด (เก็บเป็นข้อมูลแบ็กอัพ)</button>
+
+    <p class="section-label" style="margin-top:28px;">📊 สรุปยอดต่อคนแพ็ค</p>
+    <div class="toolbar">
+      <input type="date" id="summaryDate" style="max-width:220px;">
+      <button class="btn-ghost" id="clearSummaryDateBtn">ล้างวันที่ (ดูทั้งหมด)</button>
+    </div>
+    <div class="kpi-grid" id="packerSummaryGrid"></div>
+
+    <p class="section-label" style="margin-top:28px;">🔍 ค้นหาว่าใครแพ็ค</p>
+    <p class="hint">เลือกชื่อสินค้า + วันที่ออเดอร์ เพื่อเช็คว่าใครแพ็คสินค้านี้ของออเดอร์วันนั้น</p>
+    <div class="row2" style="margin-bottom:14px; max-width:560px;">
+      <div><label>ชื่อสินค้า</label><input type="text" id="lookupProduct" placeholder="เช่น กล่องสบู่"></div>
+      <div><label>วันที่ออเดอร์</label><input type="date" id="lookupDate"></div>
+    </div>
+    <button class="btn-main" id="lookupBtn" style="margin-bottom:14px;">ค้นหา</button>
+    <div id="lookupResult" style="margin-bottom:10px;"></div>
+
+    <p class="section-label" style="margin-top:28px;">📚 ประวัติที่บันทึกแล้ว (แก้ไขได้)</p>
+    <p class="hint">พิมพ์เลขผิดมาแก้ตรงนี้ได้เลย</p>
+    <div class="card" style="padding:0; overflow-x:auto; max-height:400px; overflow-y:auto;">
+      <table>
+        <thead><tr><th>วันที่แพ็ค</th><th>คนแพ็ค</th><th>ชื่อสินค้า</th><th style="width:110px;">จำนวน</th><th>วันที่ออเดอร์</th><th style="width:44px;"></th></tr></thead>
+        <tbody id="savedHistoryBody"></tbody>
+      </table>
+      <div class="empty" id="savedHistoryEmpty">ยังไม่มีข้อมูลที่บันทึกแล้ว</div>
+    </div>
+
+    <div class="month-card" style="margin-top:22px;">
+      <p class="section-label">🎉 จบเดือนนี้แล้ว?</p>
+      <p class="hint">กดเมื่อลงข้อมูลของเดือนนี้ครบแล้ว ระบบจะส่งออกข้อมูลงานแพ็ค "เดือนปัจจุบัน" ทั้งหมดเป็นไฟล์ให้ดาวน์โหลด แล้วลบออกจากเว็บ เริ่มเดือนใหม่ทันที — อยากดูย้อนหลังหลายเดือน เปิดไฟล์ที่เคยส่งออกไว้ดูได้เลย</p>
+      <button class="btn-main" id="finishPackingMonthBtn">ปิดรอบเดือนนี้ (ส่งออกไฟล์)</button>
+    </div>
+  </div>
+
+  <div id="ptab-products" style="display:none;">
+    <div class="card">
+      <p class="section-label">📋 อัปโหลดรายชื่อสินค้า</p>
+      <p class="hint">ส่งออกชีทสินค้าเป็น Excel/CSV จากกูเกิ้ลชีทเอง (File → Download) แล้วอัปโหลดไฟล์นั้นที่นี่ — ใช้เป็นตัวช่วยเสนอชื่อสินค้าให้เลือกตอนกรอกในแท็บ "กรอกเอง" กันพิมพ์ชื่อผิด/ไม่ตรงกัน อัปโหลดไฟล์ใหม่เมื่อไหร่ก็ได้เพื่ออัปเดตรายชื่อ (ไฟล์ใหม่จะแทนที่รายชื่อเดิมทั้งหมด)</p>
+      <label class="file-btn"><i class="ti ti-file-upload"></i><span id="productListFileLabel">เลือกไฟล์ Excel/CSV</span><input type="file" id="productListFile" accept=".csv,.txt,.xlsx,.xls"></label>
+      <p class="hint" id="productListStatus" style="margin:12px 0 0;"></p>
+    </div>
+    <div class="card" style="padding:0; overflow-x:auto;">
+      <table>
+        <thead><tr><th>ชื่อสินค้า</th><th style="width:44px;"></th></tr></thead>
+        <tbody id="productListBody"></tbody>
+      </table>
+      <div class="empty" id="productListEmpty">ยังไม่มีรายชื่อสินค้า</div>
+    </div>
+  </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toastMsg"></span></div>
+
+<script>
+function showToast(msg, warn){
+  var t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast show' + (warn ? ' warn' : '');
+  setTimeout(function(){ t.classList.remove('show'); }, 2400);
+}
+document.getElementById('summaryDate').value = new Date().toISOString().slice(0,10);
+
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    var t = btn.getAttribute('data-ptab');
+    document.getElementById('ptab-manual').style.display = (t==='manual') ? 'block' : 'none';
+    document.getElementById('ptab-products').style.display = (t==='products') ? 'block' : 'none';
+    if(t === 'manual') populateManualPackerSelect();
+  });
+});
+
+// ===== รายชื่อสินค้า (ใช้เป็น autocomplete ตอนกรอกเอง) =====
+function getProductList(){
+  try{ return JSON.parse(localStorage.getItem('pi_packing_products') || '[]'); } catch(e){ return []; }
+}
+function saveProductList(list){ try{ localStorage.setItem('pi_packing_products', JSON.stringify(list)); } catch(e){} }
+
+function renderProductList(){
+  var list = getProductList();
+  document.getElementById('productListEmpty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('productListBody').innerHTML = list.map(function(name, i){
+    return '<tr><td>'+name+'</td><td><i class="ti ti-trash" data-delprod="'+i+'" style="color:var(--text-muted); cursor:pointer;"></i></td></tr>';
+  }).join('');
+  document.querySelectorAll('[data-delprod]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var list2 = getProductList();
+      list2.splice(parseInt(el.getAttribute('data-delprod')), 1);
+      saveProductList(list2);
+      renderProductList();
+      populateProductDatalist();
+    });
+  });
+  var statusEl = document.getElementById('productListStatus');
+  statusEl.textContent = list.length ? ('มีรายชื่อสินค้าอยู่ ' + list.length + ' รายการ') : '';
+}
+
+
+var productMatches = [];
+
+var productHl = -1;
+function populateProductDatalist(){
+  // เก็บไว้เผื่อโค้ดอื่นเรียก แต่ตัว dropdown จริงกรองสดจาก getProductList() ทุกครั้งที่พิมพ์
+}
+function renderProductSuggest(query){
+  var list = getProductList();
+  var q = (query||'').trim().toLowerCase();
+  productMatches = q ? list.filter(function(n){ return n.toLowerCase().includes(q); }) : list;
+  productHl = productMatches.length ? 0 : -1;
+  var panel = document.getElementById('productSuggest');
+  if(!productMatches.length){ panel.style.display = 'none'; panel.innerHTML=''; return; }
+  panel.innerHTML = productMatches.map(function(n, i){
+    return '<div class="suggest-item'+(i===0?' hl':'')+'" data-i="'+i+'">'+n+'</div>';
+  }).join('');
+  panel.style.display = 'block';
+  panel.querySelectorAll('.suggest-item').forEach(function(el){
+    el.addEventListener('mousedown', function(ev){
+      ev.preventDefault();
+      selectProductSuggest(parseInt(el.getAttribute('data-i')));
+    });
+  });
+}
+function updateProductHl(){
+  document.querySelectorAll('#productSuggest .suggest-item').forEach(function(el, i){
+    el.classList.toggle('hl', i === productHl);
+  });
+  var hlEl = document.querySelector('#productSuggest .suggest-item.hl');
+  if(hlEl) hlEl.scrollIntoView({block:'nearest'});
+}
+function selectProductSuggest(i){
+  if(i < 0 || i >= productMatches.length) return;
+  document.getElementById('manualProduct').value = productMatches[i];
+  document.getElementById('productSuggest').style.display = 'none';
+  document.getElementById('manualQty').focus();
+}
+document.getElementById('manualProduct').addEventListener('input', function(){
+  renderProductSuggest(this.value);
+});
+document.getElementById('manualProduct').addEventListener('focus', function(){
+  renderProductSuggest(this.value);
+});
+document.getElementById('manualProduct').addEventListener('keydown', function(e){
+  var panel = document.getElementById('productSuggest');
+  if(panel.style.display === 'none' || !productMatches.length) return;
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    productHl = Math.min(productHl + 1, productMatches.length - 1);
+    updateProductHl();
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    productHl = Math.max(productHl - 1, 0);
+    updateProductHl();
+  } else if(e.key === 'Enter'){
+    if(productHl >= 0){
+      e.preventDefault();
+      selectProductSuggest(productHl);
+    }
+  } else if(e.key === 'Escape'){
+    panel.style.display = 'none';
+  }
+});
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.suggest-wrap')) document.getElementById('productSuggest').style.display = 'none';
+});
+
+document.getElementById('productListFile').addEventListener('change', function(e){
+  var f = e.target.files[0];
+  document.getElementById('productListFileLabel').textContent = f ? f.name : 'เลือกไฟล์ Excel/CSV';
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var wb = XLSX.read(ev.target.result, {type:'array'});
+      var data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+      if(!data.length){ showToast('ไฟล์ว่างเปล่า', true); return; }
+      var cols = Object.keys(data[0]);
+      // หาคอลัมน์ชื่อสินค้า — ลองคอลัมน์แรกที่ชื่อมีคำว่า "สินค้า" หรือ "ชื่อ" ถ้าไม่เจอใช้คอลัมน์แรกสุด
+      var nameCol = cols.find(function(c){ return c.indexOf('สินค้า')!==-1 || c.indexOf('ชื่อ')!==-1; }) || cols[0];
+      var names = data.map(function(row){ return String(row[nameCol]||'').trim(); }).filter(Boolean);
+      names = Array.from(new Set(names)); // ตัดชื่อซ้ำ
+      if(!names.length){ showToast('อ่านไฟล์ไม่พบชื่อสินค้า', true); return; }
+      saveProductList(names);
+      renderProductList();
+      populateProductDatalist();
+      showToast('อัปเดตรายชื่อสินค้าแล้ว ' + names.length + ' รายการ (แทนที่รายชื่อเดิมทั้งหมด)');
+    } catch(err){ showToast('อ่านไฟล์ไม่สำเร็จ', true); }
+  };
+  reader.readAsArrayBuffer(f);
+});
+
+// ===== สรุปยอดต่อคนแพ็ค (นับจากข้อมูลที่กรอกเองเท่านั้น) =====
+function renderPackerSummary(){
+  var dateF = document.getElementById('summaryDate').value;
+  var data = [];
+  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
+  var filtered = dateF ? data.filter(function(r){ return r.date === dateF; }) : data;
+  var counts = {};
+  filtered.forEach(function(r){ counts[r.packer] = (counts[r.packer]||0) + (r.totalQty||0); });
+  var grid = document.getElementById('packerSummaryGrid');
+  var keys = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
+  if(!keys.length){
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">ยังไม่มีข้อมูล'+(dateF ? 'ในวันที่นี้' : '')+'</div>';
+  } else {
+    grid.innerHTML = keys.map(function(k){
+      return '<div class="kpi-card"><p class="kpi-label">'+k+'</p><p class="kpi-num disp">'+counts[k]+'</p></div>';
+    }).join('');
+  }
+  renderSavedHistory();
+}
+
+function renderSavedHistory(){
+  var dateF = document.getElementById('summaryDate').value;
+  var data = [];
+  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
+  var rows = [];
+  data.forEach(function(session, si){
+    if(dateF && session.date !== dateF) return;
+    (session.products||[]).forEach(function(p, pi){
+      rows.push({si:si, pi:pi, date:session.date, packer:session.packer, product:p.product, qty:p.qty, orderDateFrom:p.orderDateFrom||'', orderDateTo:p.orderDateTo||''});
+    });
+  });
+  rows.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  var body = document.getElementById('savedHistoryBody');
+  document.getElementById('savedHistoryEmpty').style.display = rows.length ? 'none' : 'block';
+  body.innerHTML = rows.map(function(r){
+    var rangeLabel = r.orderDateFrom ? (r.orderDateFrom === r.orderDateTo ? r.orderDateFrom : r.orderDateFrom+' ถึง '+r.orderDateTo) : '-';
+    return '<tr>' +
+      '<td class="mono" style="font-size:11px; color:var(--text-muted);">'+r.date+'</td>' +
+      '<td>'+r.packer+'</td>' +
+      '<td><input type="text" class="savedEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" data-field="product" value="'+r.product+'" style="height:30px; font-size:12px;"></td>' +
+      '<td><input type="number" class="savedEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" data-field="qty" value="'+r.qty+'" style="height:30px; font-size:12px;"></td>' +
+      '<td style="font-size:11px; color:var(--text-muted);">'+rangeLabel+'</td>' +
+      '<td><i class="ti ti-trash" data-delsaved-si="'+r.si+'" data-delsaved-pi="'+r.pi+'" style="color:var(--text-muted); cursor:pointer;"></i></td>' +
+    '</tr>';
+  }).join('');
+
+  body.querySelectorAll('.savedEdit').forEach(function(el){
+    el.addEventListener('change', function(){
+      var si = parseInt(el.getAttribute('data-si'));
+      var pi = parseInt(el.getAttribute('data-pi'));
+      var field = el.getAttribute('data-field');
+      var all = [];
+      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      all[si].products[pi][field] = field === 'qty' ? (parseFloat(el.value)||0) : el.value.trim();
+      all[si].totalQty = all[si].products.reduce(function(s,p){ return s+(p.qty||0); }, 0);
+      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      renderPackerSummary();
+      showToast('แก้ไขแล้ว');
+    });
+  });
+  body.querySelectorAll('[data-delsaved-si]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var si = parseInt(el.getAttribute('data-delsaved-si'));
+      var pi = parseInt(el.getAttribute('data-delsaved-pi'));
+      var all = [];
+      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      all[si].products.splice(pi, 1);
+      if(all[si].products.length){
+        all[si].totalQty = all[si].products.reduce(function(s,p){ return s+(p.qty||0); }, 0);
+      } else {
+        all.splice(si, 1); // เซสชันไม่มีสินค้าเหลือแล้ว ลบทั้งเซสชันทิ้ง
+      }
+      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      renderPackerSummary();
+      showToast('ลบรายการแล้ว');
+    });
+  });
+}
+function lookupByProductDate(){
+  var product = document.getElementById('lookupProduct').value.trim().toLowerCase();
+  var date = document.getElementById('lookupDate').value;
+  var box = document.getElementById('lookupResult');
+  if(!product || !date){ showToast('กรอกทั้งชื่อสินค้าและวันที่ก่อน', true); return; }
+  var data = [];
+  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
+  var found = [];
+  data.forEach(function(session){
+    (session.products||[]).forEach(function(p){
+      if(!p.product.toLowerCase().includes(product)) return;
+      // ไม่มีช่วงวันที่ (เช่น ของวาวา) ให้ถือว่าตรงตามชื่อสินค้าอย่างเดียว
+      var inRange = !p.orderDateFrom || (date >= p.orderDateFrom && date <= (p.orderDateTo||p.orderDateFrom));
+      if(inRange){
+        found.push({packDate:session.date, packer:session.packer, product:p.product, qty:p.qty, orderDateFrom:p.orderDateFrom, orderDateTo:p.orderDateTo});
+      }
+    });
+  });
+  if(!found.length){
+    box.innerHTML = '<p class="hint" style="margin:0; color:var(--text-danger);">ไม่พบข้อมูลที่ตรงกับชื่อสินค้าและวันที่นี้</p>';
+    return;
+  }
+  box.innerHTML = found.map(function(f){
+    var rangeLabel = f.orderDateFrom ? (f.orderDateFrom === f.orderDateTo ? f.orderDateFrom : f.orderDateFrom+' ถึง '+f.orderDateTo) : '(ไม่ระบุช่วงวันที่)';
+    return '<div style="border:0.5px solid var(--border-success); background:var(--bg-success); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:6px; font-size:12.5px;">' +
+      'คนแพ็ค <b>'+f.packer+'</b> &nbsp;|&nbsp; สินค้า <b>'+f.product+'</b> ('+f.qty+' ชิ้น) &nbsp;|&nbsp; ออเดอร์ช่วง '+rangeLabel+' &nbsp;|&nbsp; แพ็คเมื่อ '+f.packDate +
+    '</div>';
+  }).join('');
+}
+document.getElementById('lookupBtn').addEventListener('click', lookupByProductDate);
+document.getElementById('lookupDate').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') lookupByProductDate();
+});
+
+document.getElementById('summaryDate').addEventListener('change', renderPackerSummary);
+document.getElementById('clearSummaryDateBtn').addEventListener('click', function(){
+  document.getElementById('summaryDate').value = '';
+  renderPackerSummary();
+});
+
+function currentMonthKeyPacking(){
+  var now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+var thaiMonthsPacking = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function monthLabelPacking(key){
+  var parts = key.split('-');
+  return thaiMonthsPacking[parseInt(parts[1])-1] + ' ' + (parseInt(parts[0])+543);
+}
+function exportPackingCSV(sessions, filename){
+  var header = 'วันที่,คนแพ็ค,ชื่อสินค้า,จำนวน\n';
+  var lines = [];
+  sessions.forEach(function(s){
+    (s.products||[]).forEach(function(p){
+      lines.push([s.date, s.packer, '"'+p.product.replace(/"/g,'""')+'"', p.qty].join(','));
+    });
+  });
+  var blob = new Blob(['\uFEFF' + header + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('finishPackingMonthBtn').addEventListener('click', function(){
+  var curMonth = currentMonthKeyPacking();
+  var all = [];
+  try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+  var monthSessions = all.filter(function(r){ return r.date && r.date.slice(0,7) === curMonth; });
+  if(!monthSessions.length){ showToast('ยังไม่มีข้อมูลของเดือนนี้ให้ส่งออก', true); return; }
+  if(!confirm('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' — ส่งออก ' + monthSessions.length + ' รอบงานเป็นไฟล์ แล้วลบออกจากเว็บ เริ่มเดือนใหม่?\n\nดาวน์โหลดไฟล์ไว้ก่อน กดยืนยันแล้วลบออกจากเว็บทันที กู้คืนไม่ได้')) return;
+  exportPackingCSV(monthSessions, 'คนแพ็ค_' + curMonth + '.csv');
+  var remaining = all.filter(function(r){ return !(r.date && r.date.slice(0,7) === curMonth); });
+  try{ localStorage.setItem('pi_packing_manual', JSON.stringify(remaining)); } catch(e){}
+  renderPackerSummary();
+  showToast('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' แล้ว เริ่มเดือนใหม่ได้เลย');
+});
+
+// ===== กรอกเอง (แมนนวล พร้อมรูปหลักฐาน) =====
+document.getElementById('manualDate').value = new Date().toISOString().slice(0,10);
+var manualList = [];
+var manualPhotoMeta = null;
+
+function packerOptionsFromHistory(){
+  var defaults = ['พรีม','เก็ก','กรุ๊ป','วาวา'];
+  var data = [];
+  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
+  var set = new Set(defaults);
+  data.forEach(function(r){ if(r.packer) set.add(r.packer); });
+  return Array.from(set).sort();
+}
+function populateManualPackerSelect(){
+  var sel = document.getElementById('manualPacker');
+  var cur = sel.value;
+  var opts = packerOptionsFromHistory();
+  sel.innerHTML = opts.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+  if(opts.indexOf(cur) !== -1) sel.value = cur;
+  updateOrderDateRangeVisibility();
+}
+function updateOrderDateRangeVisibility(){
+  var packer = document.getElementById('manualPacker').value;
+  var row = document.getElementById('orderDateRangeRow');
+  var hint = document.getElementById('orderDateHint');
+  var show = packer !== 'วาวา';
+  row.style.display = show ? 'grid' : 'none';
+  hint.style.display = show ? 'block' : 'none';
+}
+document.getElementById('manualPacker').addEventListener('change', updateOrderDateRangeVisibility);
+
+document.getElementById('manualPhoto').addEventListener('change', function(e){
+  var f = e.target.files[0];
+  if(!f) return;
+  manualPhotoMeta = {name:f.name, size:f.size, uploadedAt:new Date().toLocaleString('th-TH')};
+  document.getElementById('manualPhotoLabel').textContent = f.name;
+  showToast('แนบรูปแล้ว: ' + f.name + ' (เก็บชื่อ+ขนาดไว้ก่อน รอต่อ cloud storage จริงถึงจะเก็บไฟล์ได้)');
+});
+
+function renderManualList(){
+  var body = document.getElementById('manualListBody');
+  document.getElementById('manualListEmpty').style.display = manualList.length ? 'none' : 'block';
+  body.innerHTML = manualList.map(function(item, i){
+    var rangeLabel = item.orderDateFrom ? (item.orderDateFrom === item.orderDateTo ? item.orderDateFrom : item.orderDateFrom+' ถึง '+item.orderDateTo) : '-';
+    return '<tr>' +
+      '<td><input type="text" class="preSaveEdit" data-i="'+i+'" data-field="product" value="'+item.product+'" style="height:32px; font-size:12.5px;"></td>' +
+      '<td><input type="number" class="preSaveEdit" data-i="'+i+'" data-field="qty" value="'+item.qty+'" style="height:32px; font-size:12.5px; width:80px;"></td>' +
+      '<td style="font-size:12px; color:var(--text-muted);">'+rangeLabel+'</td>' +
+      '<td><i class="ti ti-trash" data-delmanual="'+i+'" style="color:var(--text-muted); cursor:pointer;"></i></td></tr>';
+  }).join('');
+  body.querySelectorAll('.preSaveEdit').forEach(function(el){
+    el.addEventListener('change', function(){
+      var i = parseInt(el.getAttribute('data-i'));
+      var field = el.getAttribute('data-field');
+      manualList[i][field] = field === 'qty' ? (parseFloat(el.value)||0) : el.value.trim();
+    });
+  });
+  body.querySelectorAll('[data-delmanual]').forEach(function(el){
+    el.addEventListener('click', function(){
+      manualList.splice(parseInt(el.getAttribute('data-delmanual')), 1);
+      renderManualList();
+    });
+  });
+}
+
+function addManualProduct(){
+  var product = document.getElementById('manualProduct').value.trim();
+  var qty = document.getElementById('manualQty').value.trim();
+  if(!product || !qty){ showToast('กรอกชื่อสินค้าและจำนวนก่อน', true); return; }
+  var packer = document.getElementById('manualPacker').value;
+  var item = {product:product, qty:parseFloat(qty)||0};
+  if(packer !== 'วาวา'){
+    var from = document.getElementById('orderDateFrom').value;
+    var to = document.getElementById('orderDateTo').value;
+    if(!from){ showToast('ระบุวันที่มีออเดอร์ก่อน (อย่างน้อยวันเริ่ม)', true); return; }
+    item.orderDateFrom = from;
+    item.orderDateTo = to || from;
+  }
+  manualList.push(item);
+  document.getElementById('manualProduct').value = '';
+  document.getElementById('manualQty').value = '';
+  document.getElementById('manualProduct').focus();
+  renderManualList();
+}
+document.getElementById('addManualProductBtn').addEventListener('click', addManualProduct);
+document.getElementById('manualQty').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    addManualProduct();
+  }
+});
+
+document.getElementById('saveManualAllBtn').addEventListener('click', function(){
+  if(!manualList.length){ showToast('ยังไม่มีรายการที่เพิ่มไว้', true); return; }
+  var date = document.getElementById('manualDate').value;
+  var packer = document.getElementById('manualPacker').value;
+  var existing = [];
+  try{ existing = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ existing = []; }
+  existing.push({
+    date: date, packer: packer, products: manualList.slice(),
+    totalQty: manualList.reduce(function(s,it){ return s+it.qty; }, 0),
+    photo: manualPhotoMeta, savedAt: new Date().toLocaleString('th-TH')
+  });
+  try{ localStorage.setItem('pi_packing_manual', JSON.stringify(existing)); } catch(e){}
+
+  showToast('บันทึกข้อมูลของ ' + packer + ' วันที่ ' + date + ' แล้ว (' + manualList.length + ' สินค้า)');
+  manualList = [];
+  manualPhotoMeta = null;
+  document.getElementById('manualPhoto').value = '';
+  document.getElementById('manualPhotoLabel').textContent = 'เลือกรูป';
+  renderManualList();
+  renderPackerSummary();
+});
+
+populateManualPackerSelect();
+renderProductList();
+populateProductDatalist();
+renderManualList();
+renderPackerSummary();
+</script>
+</body>
+</html>
