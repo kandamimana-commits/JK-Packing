@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <style>
   :root{
     --bg:#FBF2E2; --surface:#FFFFFF; --surface-kraft:#F3E4C8;
@@ -104,6 +106,21 @@
 
   .month-card{background:var(--tape-soft); border:1.5px solid var(--tape); border-radius:var(--radius-lg); padding:22px;}
   .month-card .section-label{color:var(--tape-deep);}
+  .flatpickr-calendar{background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); box-shadow:0 10px 32px rgba(74,56,38,0.18); font-family:var(--font-body);}
+  .flatpickr-calendar.arrowTop:before, .flatpickr-calendar.arrowTop:after{border-bottom-color:var(--surface);}
+  .flatpickr-months{padding:10px 8px 4px;}
+  .flatpickr-current-month{font-family:var(--font-display); font-size:15.5px; color:var(--ink);}
+  .flatpickr-months .flatpickr-month{color:var(--ink);}
+  .flatpickr-weekday{color:var(--ink-soft); font-weight:600;}
+  .flatpickr-day{color:var(--ink); border-radius:10px;}
+  .flatpickr-day.today{border-color:var(--tape);}
+  .flatpickr-day:hover{background:var(--tape-soft); border-color:var(--tape-soft);}
+  .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange{background:var(--tape); border-color:var(--tape); color:var(--on-tape);}
+  .flatpickr-day.inRange{background:var(--tape-soft); border-color:var(--tape-soft); box-shadow:-5px 0 0 var(--tape-soft), 5px 0 0 var(--tape-soft);}
+  .flatpickr-day.flatpickr-disabled{color:var(--ink-faint);}
+  .numInputWrapper span.arrowUp:after{border-bottom-color:var(--ink-soft);}
+  .numInputWrapper span.arrowDown:after{border-top-color:var(--ink-soft);}
+  .flatpickr-current-month input.cur-year{color:var(--ink);}
 </style>
 </head>
 <body>
@@ -140,11 +157,13 @@
 
     <div class="card">
       <p class="section-label">➕ เพิ่มสินค้าที่แพ็ค</p>
-      <div id="orderDateRangeRow" class="row2" style="margin-bottom:10px;">
-        <div><label>วันที่มีออเดอร์ — เริ่ม</label><input type="date" id="orderDateFrom"></div>
-        <div><label>วันที่มีออเดอร์ — ถึง</label><input type="date" id="orderDateTo"></div>
+      <div id="orderDateRangeRow" style="margin-bottom:10px;">
+        <label>วันที่มีออเดอร์ (คลิกเลือกวันเริ่ม แล้วเลือกวันสุดท้าย)</label>
+        <input type="text" id="orderDateRangeInput" placeholder="เลือกช่วงวันที่" readonly style="cursor:pointer;">
+        <input type="hidden" id="orderDateFrom">
+        <input type="hidden" id="orderDateTo">
       </div>
-      <p class="hint" id="orderDateHint" style="margin-top:-2px;">เผื่อแพ็คของออเดอร์หลายวันรวมกันในรอบเดียว ใส่แค่วันเดียวก็ใส่ทั้งเริ่ม-ถึงเป็นวันเดียวกันได้</p>
+      <p class="hint" id="orderDateHint" style="margin-top:-2px;">เผื่อแพ็คของออเดอร์หลายวันรวมกันในรอบเดียว คลิกวันเดียวกัน 2 ครั้งได้ถ้ามีแค่วันเดียว</p>
       <div class="row2" style="margin-bottom:14px;">
         <div class="suggest-wrap"><label>ชื่อสินค้า</label><input type="text" id="manualProduct" autocomplete="off" placeholder="เช่น กล่องสบู่"><div id="productSuggest" class="suggest-panel" style="display:none;"></div></div>
         <div><label>จำนวนที่แพ็ค</label><input type="number" id="manualQty" placeholder="เช่น 5"></div>
@@ -530,12 +549,32 @@ function populateManualPackerSelect(){
   if(opts.indexOf(cur) !== -1) sel.value = cur;
   updateOrderDateRangeVisibility();
 }
+flatpickr('#orderDateRangeInput', {
+  mode: 'range',
+  dateFormat: 'd/m/Y',
+  locale: { rangeSeparator: ' ถึง ' },
+  onChange: function(selectedDates, dateStr, instance){
+    if(selectedDates.length === 2){
+      document.getElementById('orderDateFrom').value = instance.formatDate(selectedDates[0], 'Y-m-d');
+      document.getElementById('orderDateTo').value = instance.formatDate(selectedDates[1], 'Y-m-d');
+    } else if(selectedDates.length === 1){
+      // เลือกวันเดียว (คลิกวันเดียวกันซ้ำ หรือยังเลือกไม่ครบ) — ถือเป็นวันเดียวกันทั้งเริ่ม-ถึง
+      var d = instance.formatDate(selectedDates[0], 'Y-m-d');
+      document.getElementById('orderDateFrom').value = d;
+      document.getElementById('orderDateTo').value = d;
+    } else {
+      document.getElementById('orderDateFrom').value = '';
+      document.getElementById('orderDateTo').value = '';
+    }
+  }
+});
+
 function updateOrderDateRangeVisibility(){
   var packer = document.getElementById('manualPacker').value;
   var row = document.getElementById('orderDateRangeRow');
   var hint = document.getElementById('orderDateHint');
   var show = packer !== 'วาวา';
-  row.style.display = show ? 'grid' : 'none';
+  row.style.display = show ? 'block' : 'none';
   hint.style.display = show ? 'block' : 'none';
 }
 document.getElementById('manualPacker').addEventListener('change', updateOrderDateRangeVisibility);
