@@ -148,41 +148,38 @@
     <p class="pagetitle">Report</p>
     <p class="pagesub">สรุปภาพรวมงานแพ็ค</p>
 
-    <span class="mock-tag">🧪 ข้อมูลสมมติสำหรับดูตัวอย่างดีไซน์ — รอต่อข้อมูลจริงทีหลัง</span>
+  <div class="card" style="background:var(--surface-kraft);">
+    <p class="section-label">🔍 ค้นหาว่าใครแพ็ค</p>
+    <p class="hint">เลือกชื่อสินค้า + วันที่ออเดอร์ เพื่อเช็คว่าใครแพ็คสินค้านี้ของออเดอร์วันนั้น</p>
+    <div class="row2" style="margin-bottom:12px; max-width:560px;">
+      <div><label>ชื่อสินค้า</label><input type="text" id="lookupProduct" placeholder="เช่น กล่องสบู่"></div>
+      <div><label>วันที่ออเดอร์</label><input type="date" id="lookupDate"></div>
+    </div>
+    <button class="btn-main" id="lookupBtn">ค้นหา</button>
+    <div id="lookupResult" style="margin-top:10px;"></div>
+  </div>
 
   <div class="report-kpi-grid">
-    <div class="report-kpi"><p class="report-kpi-label">📦 ยอดแพ็ครวม (เดือนนี้)</p><p class="report-kpi-num disp">1,083</p></div>
-    <div class="report-kpi"><p class="report-kpi-label">👥 คนแพ็คที่ทำงาน</p><p class="report-kpi-num disp">4</p></div>
-    <div class="report-kpi"><p class="report-kpi-label">🏆 ทำยอดสูงสุด</p><p class="report-kpi-num disp">เก็ก</p></div>
-    <div class="report-kpi"><p class="report-kpi-label">📈 เฉลี่ยต่อวัน</p><p class="report-kpi-num disp">140</p></div>
+    <div class="report-kpi"><p class="report-kpi-label">📦 ยอดแพ็ครวม (เดือนนี้)</p><p class="report-kpi-num disp" id="kpiTotal">0</p></div>
+    <div class="report-kpi"><p class="report-kpi-label">👥 คนแพ็คที่ทำงาน</p><p class="report-kpi-num disp" id="kpiPackers">0</p></div>
+    <div class="report-kpi"><p class="report-kpi-label">🏆 ทำยอดสูงสุด</p><p class="report-kpi-num disp" id="kpiTop">-</p></div>
+    <div class="report-kpi"><p class="report-kpi-label">📈 เฉลี่ยต่อวัน</p><p class="report-kpi-num disp" id="kpiAvg">0</p></div>
   </div>
 
   <div class="card">
     <p class="section-label">🥧 สัดส่วนยอดแพ็คต่อคน</p>
     <p class="hint">เดือนนี้ — ใครแพ็คเยอะแค่ไหนเทียบกัน</p>
-    <div class="pie-wrap">
-      <div class="pie-chart" style="background:conic-gradient(from 0deg, #FF7A55 0% 35%, #5FA980 35% 63%, #E8B84B 63% 85%, #7C93AA 85% 100%);"></div>
-      <div class="pie-legend">
-        <div class="legend-row"><div class="legend-dot" style="background:#FF7A55;"></div><span class="legend-name">เก็ก</span><span class="legend-pct">35%</span></div>
-        <div class="legend-row"><div class="legend-dot" style="background:#5FA980;"></div><span class="legend-name">พรีม</span><span class="legend-pct">28%</span></div>
-        <div class="legend-row"><div class="legend-dot" style="background:#E8B84B;"></div><span class="legend-name">กรุ๊ป</span><span class="legend-pct">22%</span></div>
-        <div class="legend-row"><div class="legend-dot" style="background:#7C93AA;"></div><span class="legend-name">วาวา</span><span class="legend-pct">15%</span></div>
-      </div>
+    <div class="pie-wrap" id="pieWrap">
+      <div class="pie-chart" id="pieChart"></div>
+      <div class="pie-legend" id="pieLegend"></div>
     </div>
+    <div class="empty" id="pieEmpty" style="display:none;">ยังไม่มีข้อมูลเดือนนี้</div>
   </div>
 
   <div class="card">
     <p class="section-label">📶 ยอดแพ็ครายวัน (มุมมองรายสัปดาห์ — 7 วันล่าสุด)</p>
     <p class="hint">รวมทุกคนแพ็คต่อวัน</p>
-    <div class="bar-chart">
-      <div class="bar-col"><span class="bar-val">120</span><div class="bar-fill" style="height:69%;"></div><span class="bar-day">จ.</span></div>
-      <div class="bar-col"><span class="bar-val">145</span><div class="bar-fill" style="height:83%;"></div><span class="bar-day">อ.</span></div>
-      <div class="bar-col"><span class="bar-val">98</span><div class="bar-fill" style="height:56%;"></div><span class="bar-day">พ.</span></div>
-      <div class="bar-col"><span class="bar-val">160</span><div class="bar-fill" style="height:91%;"></div><span class="bar-day">พฤ.</span></div>
-      <div class="bar-col"><span class="bar-val">175</span><div class="bar-fill" style="height:100%; background:var(--tape-deep);"></div><span class="bar-day">ศ.</span></div>
-      <div class="bar-col"><span class="bar-val">130</span><div class="bar-fill" style="height:74%;"></div><span class="bar-day">ส.</span></div>
-      <div class="bar-col"><span class="bar-val">155</span><div class="bar-fill" style="height:89%;"></div><span class="bar-day">อา.</span></div>
-    </div>
+    <div class="bar-chart" id="weeklyBarChart"></div>
   </div>
 
   <div class="card">
@@ -190,20 +187,153 @@
       <p class="section-label" style="margin:0;">📋 จำนวนออเดอร์รายวัน (มุมมองรายวัน — เลือกดูวันไหนก็ได้)</p>
       <input type="date" id="dailyOrderDate" style="max-width:190px;">
     </div>
-    <p class="hint">จำนวนออเดอร์ที่แพ็คในวันที่เลือก แยกตามคนแพ็ค</p>
-    <div id="dailyOrderChart">
-      <div class="hbar-row"><span class="hbar-name">เก็ก</span><div class="hbar-track"><div class="hbar-fill" style="width:100%;"><span class="hbar-val">18</span></div></div></div>
-      <div class="hbar-row"><span class="hbar-name">พรีม</span><div class="hbar-track"><div class="hbar-fill" style="width:78%;"><span class="hbar-val">14</span></div></div></div>
-      <div class="hbar-row"><span class="hbar-name">กรุ๊ป</span><div class="hbar-track"><div class="hbar-fill" style="width:50%;"><span class="hbar-val">9</span></div></div></div>
-      <div class="hbar-row"><span class="hbar-name">วาวา</span><div class="hbar-track"><div class="hbar-fill" style="width:33%;"><span class="hbar-val">6</span></div></div></div>
-    </div>
+    <p class="hint">จำนวนที่แพ็คของออเดอร์วันที่เลือก แยกตามคนแพ็ค</p>
+    <div id="dailyOrderChart"></div>
+    <div class="empty" id="dailyOrderEmpty" style="display:none;">ไม่มีข้อมูลของวันนี้</div>
   </div>
   </main>
 </div>
 
 <script>
+var PACKER_COLORS = ['#FF7A55','#5FA980','#E8B84B','#7C93AA','#C77DFF','#4FB8C4','#D4879C','#8FAE5F'];
+function getPackingData(){
+  try{ return JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ return []; }
+}
+function currentMonthKey(){
+  var now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+function toISO(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function renderKPIsAndPie(){
+  var monthKey = currentMonthKey();
+  var sessions = getPackingData().filter(function(s){ return s.date && s.date.slice(0,7) === monthKey; });
+  var totals = {};
+  var daysSet = {};
+  sessions.forEach(function(s){
+    totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0);
+    daysSet[s.date] = true;
+  });
+  var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
+  packers.sort(function(a,b){ return totals[b]-totals[a]; });
+  var grand = packers.reduce(function(s,k){ return s+totals[k]; }, 0);
+  var activeDays = Object.keys(daysSet).length;
+
+  document.getElementById('kpiTotal').textContent = grand.toLocaleString();
+  document.getElementById('kpiPackers').textContent = packers.length;
+  document.getElementById('kpiTop').textContent = packers.length ? packers[0] : '-';
+  document.getElementById('kpiAvg').textContent = activeDays ? Math.round(grand/activeDays).toLocaleString() : '0';
+
+  var pieEmpty = document.getElementById('pieEmpty');
+  var pieWrap = document.getElementById('pieWrap');
+  if(!packers.length){
+    pieEmpty.style.display = 'block';
+    pieWrap.style.display = 'none';
+    return;
+  }
+  pieEmpty.style.display = 'none';
+  pieWrap.style.display = 'flex';
+
+  var gradientParts = [];
+  var cum = 0;
+  packers.forEach(function(k, i){
+    var pct = (totals[k]/grand)*100;
+    var color = PACKER_COLORS[i % PACKER_COLORS.length];
+    gradientParts.push(color + ' ' + cum.toFixed(1) + '% ' + (cum+pct).toFixed(1) + '%');
+    cum += pct;
+  });
+  document.getElementById('pieChart').style.background = 'conic-gradient(from 0deg, ' + gradientParts.join(', ') + ')';
+  document.getElementById('pieLegend').innerHTML = packers.map(function(k, i){
+    var pct = Math.round((totals[k]/grand)*100);
+    var color = PACKER_COLORS[i % PACKER_COLORS.length];
+    return '<div class="legend-row"><div class="legend-dot" style="background:'+color+';"></div><span class="legend-name">'+k+'</span><span class="legend-pct">'+pct+'%</span></div>';
+  }).join('');
+}
+
+function renderWeeklyBarChart(){
+  var days = [];
+  var now = new Date();
+  for(var i=6; i>=0; i--){
+    var d = new Date(now); d.setDate(now.getDate()-i);
+    days.push(d);
+  }
+  var thaiDayLabels = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  var sessions = getPackingData();
+  var totalsByDate = {};
+  sessions.forEach(function(s){ totalsByDate[s.date] = (totalsByDate[s.date]||0) + (s.totalQty||0); });
+  var values = days.map(function(d){ return totalsByDate[toISO(d)] || 0; });
+  var max = Math.max.apply(null, values.concat([1]));
+  var todayISO = toISO(now);
+  document.getElementById('weeklyBarChart').innerHTML = days.map(function(d, i){
+    var v = values[i];
+    var pct = Math.round((v/max)*100);
+    var isToday = toISO(d) === todayISO;
+    return '<div class="bar-col"><span class="bar-val">'+v+'</span><div class="bar-fill" style="height:'+pct+'%;'+(isToday?' background:var(--tape-deep);':'')+'"></div><span class="bar-day">'+thaiDayLabels[d.getDay()]+'</span></div>';
+  }).join('');
+}
+
+function renderDailyOrderChart(){
+  var dateSel = document.getElementById('dailyOrderDate').value;
+  var sessions = getPackingData();
+  var totals = {};
+  sessions.forEach(function(s){
+    (s.products||[]).forEach(function(p){
+      var matches = p.orderDateFrom ? (dateSel >= p.orderDateFrom && dateSel <= (p.orderDateTo||p.orderDateFrom)) : (s.date === dateSel);
+      if(matches){ totals[s.packer] = (totals[s.packer]||0) + (p.qty||0); }
+    });
+  });
+  var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
+  packers.sort(function(a,b){ return totals[b]-totals[a]; });
+  var box = document.getElementById('dailyOrderChart');
+  var empty = document.getElementById('dailyOrderEmpty');
+  if(!packers.length){ empty.style.display = 'block'; box.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  var max = totals[packers[0]];
+  box.innerHTML = packers.map(function(k){
+    var pct = Math.round((totals[k]/max)*100);
+    return '<div class="hbar-row"><span class="hbar-name">'+k+'</span><div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;"><span class="hbar-val">'+totals[k]+'</span></div></div></div>';
+  }).join('');
+}
 document.getElementById('dailyOrderDate').valueAsDate = new Date();
-// หมายเหตุ: ตอนนี้เป็นข้อมูลสมมติตายตัวไปก่อน — พอต่อข้อมูลจริงแล้ว เปลี่ยนวันที่จะดึงยอดของวันนั้นมาวาดใหม่ให้อัตโนมัติ
+document.getElementById('dailyOrderDate').addEventListener('change', renderDailyOrderChart);
+
+function lookupByProductDate(){
+  var product = document.getElementById('lookupProduct').value.trim().toLowerCase();
+  var date = document.getElementById('lookupDate').value;
+  var box = document.getElementById('lookupResult');
+  if(!product || !date){ box.innerHTML = '<p class="hint" style="margin:0; color:var(--text-danger);">กรอกทั้งชื่อสินค้าและวันที่ก่อน</p>'; return; }
+  var data = getPackingData();
+  var found = [];
+  data.forEach(function(session){
+    (session.products||[]).forEach(function(p){
+      if(!p.product.toLowerCase().includes(product)) return;
+      var inRange = !p.orderDateFrom || (date >= p.orderDateFrom && date <= (p.orderDateTo||p.orderDateFrom));
+      if(inRange){
+        found.push({packDate:session.date, packer:session.packer, product:p.product, qty:p.qty, orderDateFrom:p.orderDateFrom, orderDateTo:p.orderDateTo});
+      }
+    });
+  });
+  if(!found.length){
+    box.innerHTML = '<p class="hint" style="margin:0; color:var(--text-danger);">ไม่พบข้อมูลที่ตรงกับชื่อสินค้าและวันที่นี้</p>';
+    return;
+  }
+  box.innerHTML = found.map(function(f){
+    var rangeLabel = f.orderDateFrom ? (f.orderDateFrom === f.orderDateTo ? f.orderDateFrom : f.orderDateFrom+' ถึง '+f.orderDateTo) : '(ไม่ระบุช่วงวันที่)';
+    return '<div style="border:0.5px solid var(--border-success); background:var(--bg-success); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:6px; font-size:12.5px;">' +
+      'คนแพ็ค <b>'+f.packer+'</b> &nbsp;|&nbsp; สินค้า <b>'+f.product+'</b> ('+f.qty+' ชิ้น) &nbsp;|&nbsp; ออเดอร์ช่วง '+rangeLabel+' &nbsp;|&nbsp; แพ็คเมื่อ '+f.packDate +
+    '</div>';
+  }).join('');
+}
+document.getElementById('lookupBtn').addEventListener('click', lookupByProductDate);
+document.getElementById('lookupDate').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') lookupByProductDate();
+});
+
+renderKPIsAndPie();
+renderWeeklyBarChart();
+renderDailyOrderChart();
 </script>
 
 </body>
