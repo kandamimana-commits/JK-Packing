@@ -122,6 +122,19 @@
   .hbar-fill{height:100%; background:var(--tape); border-radius:var(--radius-pill); display:flex; align-items:center; justify-content:flex-end; padding-right:12px; transition:width 0.4s ease;}
   .hbar-val{font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--on-tape);}
 
+  .rank-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .rank-row:last-child{margin-bottom:0;}
+  .rank-badge{width:32px; height:32px; border-radius:50%; background:var(--surface-kraft); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:14px; flex-shrink:0; color:var(--ink-soft);}
+  .rank-badge.top1{background:#FFD66B; font-size:18px;}
+  .rank-badge.top2{background:#D9D9D9; font-size:18px;}
+  .rank-badge.top3{background:#E3A063; font-size:18px;}
+  .rank-name{width:60px; flex-shrink:0; font-size:15px; font-weight:600;}
+  .rank-track{flex:1; height:32px; background:var(--surface-kraft); border-radius:var(--radius-pill); overflow:hidden;}
+  .rank-fill{height:100%; background:var(--tape); border-radius:var(--radius-pill); display:flex; align-items:center; justify-content:flex-end; padding-right:12px; transition:width 0.4s ease;}
+  .rank-fill.top1{background:linear-gradient(90deg, var(--tape), #FFB84D);}
+  .rank-badge{width:32px; flex-shrink:0; text-align:center; font-size:20px;}
+  .rank-badge.plain{font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--ink-faint);}
+
   .seg-control{display:inline-flex; background:var(--surface-kraft); border-radius:var(--radius-pill); padding:4px; gap:4px;}
   .seg-btn{font-family:var(--font-display); font-size:14px; font-weight:600; padding:9px 18px; border-radius:var(--radius-pill); border:none; background:transparent; color:var(--ink-soft);}
   .seg-btn.active{background:var(--tape); color:var(--on-tape);}
@@ -159,6 +172,19 @@
     <div id="lookupResult" style="margin-top:10px;"></div>
   </div>
 
+  <div class="card">
+    <div class="toolbar" style="margin-bottom:6px;">
+      <p class="section-label" style="margin:0;">🏆 จัดอันดับคนแพ็ค</p>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="date" id="rankDate" style="max-width:170px;">
+        <button class="btn-ghost" id="clearRankDateBtn">ทั้งหมด</button>
+      </div>
+    </div>
+    <p class="hint" id="rankRangeLabel"></p>
+    <div id="rankChart"></div>
+    <div class="empty" id="rankEmpty" style="display:none;">ยังไม่มีข้อมูล</div>
+  </div>
+
   <div class="report-kpi-grid">
     <div class="report-kpi"><p class="report-kpi-label">📦 ยอดแพ็ครวม (เดือนนี้)</p><p class="report-kpi-num disp" id="kpiTotal">0</p></div>
     <div class="report-kpi"><p class="report-kpi-label">👥 คนแพ็คที่ทำงาน</p><p class="report-kpi-num disp" id="kpiPackers">0</p></div>
@@ -187,7 +213,7 @@
       <p class="section-label" style="margin:0;">📋 จำนวนออเดอร์รายวัน (มุมมองรายวัน — เลือกดูวันไหนก็ได้)</p>
       <input type="date" id="dailyOrderDate" style="max-width:190px;">
     </div>
-    <p class="hint">จำนวนที่แพ็คของออเดอร์วันที่เลือก แยกตามคนแพ็ค</p>
+    <p class="hint">จำนวนที่แพ็คของออเดอร์วันที่เลือก แยกตามคนแพ็ค (นับเฉพาะพรีม/เก็ก/กรุ๊ป ที่มีช่วงวันที่ออเดอร์ — วาวาไม่มีข้อมูลนี้ ดูยอดรวมของวาวาได้ที่กราฟวงกลม/รายสัปดาห์ด้านบนแทน)</p>
     <div id="dailyOrderChart"></div>
     <div class="empty" id="dailyOrderEmpty" style="display:none;">ไม่มีข้อมูลของวันนี้</div>
   </div>
@@ -280,7 +306,8 @@ function renderDailyOrderChart(){
   var totals = {};
   sessions.forEach(function(s){
     (s.products||[]).forEach(function(p){
-      var matches = p.orderDateFrom ? (dateSel >= p.orderDateFrom && dateSel <= (p.orderDateTo||p.orderDateFrom)) : (s.date === dateSel);
+      if(!p.orderDateFrom) return; // ไม่มีช่วงวันที่ออเดอร์ (เช่น วาวา) เทียบแบบนี้ไม่ได้ ข้ามไป
+      var matches = dateSel >= p.orderDateFrom && dateSel <= (p.orderDateTo||p.orderDateFrom);
       if(matches){ totals[s.packer] = (totals[s.packer]||0) + (p.qty||0); }
     });
   });
@@ -331,7 +358,43 @@ document.getElementById('lookupDate').addEventListener('keydown', function(e){
   if(e.key === 'Enter') lookupByProductDate();
 });
 
+var MEDALS = ['🥇','🥈','🥉'];
+function renderRankChart(){
+  var dateF = document.getElementById('rankDate').value;
+  var sessions = getPackingData();
+  var filtered = dateF ? sessions.filter(function(s){ return s.date === dateF; }) : sessions;
+  var totals = {};
+  filtered.forEach(function(s){ totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0); });
+  var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
+  packers.sort(function(a,b){ return totals[b]-totals[a]; });
+
+  document.getElementById('rankRangeLabel').textContent = dateF ? ('วันที่ ' + dateF) : 'รวมทุกวันที่มีข้อมูล';
+
+  var box = document.getElementById('rankChart');
+  var empty = document.getElementById('rankEmpty');
+  if(!packers.length){ empty.style.display = 'block'; box.innerHTML = ''; return; }
+  empty.style.display = 'none';
+
+  var max = totals[packers[0]];
+  box.innerHTML = packers.map(function(k, i){
+    var pct = Math.round((totals[k]/max)*100);
+    var topClass = i < 3 ? ' top'+(i+1) : '';
+    var badgeContent = i < 3 ? MEDALS[i] : (i+1);
+    return '<div class="rank-row">' +
+      '<div class="rank-badge'+topClass+'">'+badgeContent+'</div>' +
+      '<span class="rank-name">'+k+'</span>' +
+      '<div class="rank-track"><div class="rank-fill'+topClass+'" style="width:'+pct+'%;"><span class="hbar-val">'+totals[k]+'</span></div></div>' +
+    '</div>';
+  }).join('');
+}
+document.getElementById('rankDate').addEventListener('change', renderRankChart);
+document.getElementById('clearRankDateBtn').addEventListener('click', function(){
+  document.getElementById('rankDate').value = '';
+  renderRankChart();
+});
+
 renderKPIsAndPie();
+renderRankChart();
 renderWeeklyBarChart();
 renderDailyOrderChart();
 </script>

@@ -181,15 +181,8 @@
     </div>
     <button class="btn-dark" id="saveManualAllBtn" style="margin-top:14px;">💾 บันทึกทั้งหมด (เก็บเป็นข้อมูลแบ็กอัพ)</button>
 
-    <p class="section-label" style="margin-top:28px;">📊 สรุปยอดต่อคนแพ็ค</p>
-    <div class="toolbar">
-      <input type="date" id="summaryDate" style="max-width:220px;">
-      <button class="btn-ghost" id="clearSummaryDateBtn">ล้างวันที่ (ดูทั้งหมด)</button>
-    </div>
-    <div class="kpi-grid" id="packerSummaryGrid"></div>
-
     <p class="section-label" style="margin-top:28px;">📚 ประวัติที่บันทึกแล้ว (แก้ไขได้)</p>
-    <p class="hint">พิมพ์เลขผิดมาแก้ตรงนี้ได้เลย</p>
+    <p class="hint">พิมพ์เลขผิดมาแก้ตรงนี้ได้เลย (ใช้ตัวกรองวันที่เดียวกับด้านบน)</p>
     <div class="card" style="padding:0; overflow-x:auto; max-height:400px; overflow-y:auto;">
       <table>
         <thead><tr><th>วันที่แพ็ค</th><th>คนแพ็ค</th><th>ชื่อสินค้า</th><th style="width:110px;">จำนวน</th><th>วันที่ออเดอร์</th><th style="width:44px;"></th></tr></thead>
@@ -232,7 +225,6 @@ function showToast(msg, warn){
   t.className = 'toast show' + (warn ? ' warn' : '');
   setTimeout(function(){ t.classList.remove('show'); }, 2400);
 }
-document.getElementById('summaryDate').value = new Date().toISOString().slice(0,10);
 
 document.querySelectorAll('.tab-btn').forEach(function(btn){
   btn.addEventListener('click', function(){
@@ -363,33 +355,18 @@ document.getElementById('productListFile').addEventListener('change', function(e
   reader.readAsArrayBuffer(f);
 });
 
-// ===== สรุปยอดต่อคนแพ็ค (นับจากข้อมูลที่กรอกเองเท่านั้น) =====
+// ===== รีเฟรชตารางประวัติ (สรุปยอดต่อคนแพ็คย้ายไปแสดงที่หน้า Report แล้ว) =====
+// หมายเหตุ: สรุปยอดต่อคนแพ็ค (แบบจัดอันดับ) ย้ายไปแสดงที่หน้า Report แล้ว
+// ฟังก์ชันนี้คงชื่อไว้เพราะมีจุดเรียกใช้หลายที่ (หลังบันทึก/แก้ไข/ลบ) เพื่อรีเฟรชตารางประวัติ
 function renderPackerSummary(){
-  var dateF = document.getElementById('summaryDate').value;
-  var data = [];
-  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
-  var filtered = dateF ? data.filter(function(r){ return r.date === dateF; }) : data;
-  var counts = {};
-  filtered.forEach(function(r){ counts[r.packer] = (counts[r.packer]||0) + (r.totalQty||0); });
-  var grid = document.getElementById('packerSummaryGrid');
-  var keys = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
-  if(!keys.length){
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">ยังไม่มีข้อมูล'+(dateF ? 'ในวันที่นี้' : '')+'</div>';
-  } else {
-    grid.innerHTML = keys.map(function(k){
-      return '<div class="kpi-card"><p class="kpi-label">'+k+'</p><p class="kpi-num disp">'+counts[k]+'</p></div>';
-    }).join('');
-  }
   renderSavedHistory();
 }
 
 function renderSavedHistory(){
-  var dateF = document.getElementById('summaryDate').value;
   var data = [];
   try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
   var rows = [];
   data.forEach(function(session, si){
-    if(dateF && session.date !== dateF) return;
     (session.products||[]).forEach(function(p, pi){
       rows.push({si:si, pi:pi, date:session.date, packer:session.packer, product:p.product, qty:p.qty, orderDateFrom:p.orderDateFrom||'', orderDateTo:p.orderDateTo||''});
     });
@@ -441,11 +418,6 @@ function renderSavedHistory(){
     });
   });
 }
-document.getElementById('summaryDate').addEventListener('change', renderPackerSummary);
-document.getElementById('clearSummaryDateBtn').addEventListener('click', function(){
-  document.getElementById('summaryDate').value = '';
-  renderPackerSummary();
-});
 
 function currentMonthKeyPacking(){
   var now = new Date();
