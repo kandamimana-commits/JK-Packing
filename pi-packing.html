@@ -181,6 +181,13 @@
     </div>
     <button class="btn-dark" id="saveManualAllBtn" style="margin-top:14px;">💾 บันทึกทั้งหมด (เก็บเป็นข้อมูลแบ็กอัพ)</button>
 
+    <p class="section-label" style="margin-top:28px;">📊 สรุปยอดต่อคนแพ็ค</p>
+    <div class="toolbar">
+      <input type="date" id="summaryDate" style="max-width:220px;">
+      <button class="btn-ghost" id="clearSummaryDateBtn">ล้างวันที่ (ดูทั้งหมด)</button>
+    </div>
+    <div class="kpi-grid" id="packerSummaryGrid"></div>
+
     <p class="section-label" style="margin-top:28px;">📚 ประวัติที่บันทึกแล้ว (แก้ไขได้)</p>
     <p class="hint">พิมพ์เลขผิดมาแก้ตรงนี้ได้เลย (ใช้ตัวกรองวันที่เดียวกับด้านบน)</p>
     <div class="card" style="padding:0; overflow-x:auto; max-height:400px; overflow-y:auto;">
@@ -225,6 +232,8 @@ function showToast(msg, warn){
   t.className = 'toast show' + (warn ? ' warn' : '');
   setTimeout(function(){ t.classList.remove('show'); }, 2400);
 }
+
+document.getElementById('summaryDate').value = new Date().toISOString().slice(0,10);
 
 document.querySelectorAll('.tab-btn').forEach(function(btn){
   btn.addEventListener('click', function(){
@@ -359,8 +368,29 @@ document.getElementById('productListFile').addEventListener('change', function(e
 // หมายเหตุ: สรุปยอดต่อคนแพ็ค (แบบจัดอันดับ) ย้ายไปแสดงที่หน้า Report แล้ว
 // ฟังก์ชันนี้คงชื่อไว้เพราะมีจุดเรียกใช้หลายที่ (หลังบันทึก/แก้ไข/ลบ) เพื่อรีเฟรชตารางประวัติ
 function renderPackerSummary(){
+  var dateF = document.getElementById('summaryDate').value;
+  var sessions = [];
+  try{ sessions = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ sessions = []; }
+  var filtered = dateF ? sessions.filter(function(s){ return s.date === dateF; }) : sessions;
+  var totals = {};
+  filtered.forEach(function(s){ totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0); });
+  var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
+  packers.sort(function(a,b){ return totals[b]-totals[a]; });
+  var grid = document.getElementById('packerSummaryGrid');
+  if(!packers.length){
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">ยังไม่มีข้อมูล'+(dateF ? 'ในวันที่นี้' : '')+'</div>';
+  } else {
+    grid.innerHTML = packers.map(function(k){
+      return '<div class="kpi-card"><p class="kpi-label">'+k+'</p><p class="kpi-num disp">'+totals[k]+'</p></div>';
+    }).join('');
+  }
   renderSavedHistory();
 }
+document.getElementById('summaryDate').addEventListener('change', renderPackerSummary);
+document.getElementById('clearSummaryDateBtn').addEventListener('click', function(){
+  document.getElementById('summaryDate').value = '';
+  renderPackerSummary();
+});
 
 function renderSavedHistory(){
   var data = [];

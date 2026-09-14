@@ -177,7 +177,7 @@
       <p class="section-label" style="margin:0;">🏆 จัดอันดับคนแพ็ค</p>
       <div style="display:flex; gap:8px; align-items:center;">
         <input type="date" id="rankDate" style="max-width:170px;">
-        <button class="btn-ghost" id="clearRankDateBtn">ทั้งหมด</button>
+        <button class="btn-ghost" id="clearRankDateBtn">เดือนนี้</button>
       </div>
     </div>
     <p class="hint" id="rankRangeLabel"></p>
@@ -213,7 +213,7 @@
       <p class="section-label" style="margin:0;">📋 จำนวนออเดอร์รายวัน (มุมมองรายวัน — เลือกดูวันไหนก็ได้)</p>
       <input type="date" id="dailyOrderDate" style="max-width:190px;">
     </div>
-    <p class="hint">จำนวนที่แพ็คของออเดอร์วันที่เลือก แยกตามคนแพ็ค (นับเฉพาะพรีม/เก็ก/กรุ๊ป ที่มีช่วงวันที่ออเดอร์ — วาวาไม่มีข้อมูลนี้ ดูยอดรวมของวาวาได้ที่กราฟวงกลม/รายสัปดาห์ด้านบนแทน)</p>
+    <p class="hint">จำนวนที่แพ็คในวันที่เลือก (นับจากวันที่แพ็คจริง) แยกตามคนแพ็ค — รวมทุกคนแพ็ค</p>
     <div id="dailyOrderChart"></div>
     <div class="empty" id="dailyOrderEmpty" style="display:none;">ไม่มีข้อมูลของวันนี้</div>
   </div>
@@ -305,11 +305,8 @@ function renderDailyOrderChart(){
   var sessions = getPackingData();
   var totals = {};
   sessions.forEach(function(s){
-    (s.products||[]).forEach(function(p){
-      if(!p.orderDateFrom) return; // ไม่มีช่วงวันที่ออเดอร์ (เช่น วาวา) เทียบแบบนี้ไม่ได้ ข้ามไป
-      var matches = dateSel >= p.orderDateFrom && dateSel <= (p.orderDateTo||p.orderDateFrom);
-      if(matches){ totals[s.packer] = (totals[s.packer]||0) + (p.qty||0); }
-    });
+    if(s.date !== dateSel) return;
+    totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0);
   });
   var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
   packers.sort(function(a,b){ return totals[b]-totals[a]; });
@@ -362,13 +359,13 @@ var MEDALS = ['🥇','🥈','🥉'];
 function renderRankChart(){
   var dateF = document.getElementById('rankDate').value;
   var sessions = getPackingData();
-  var filtered = dateF ? sessions.filter(function(s){ return s.date === dateF; }) : sessions;
+  var filtered = dateF ? sessions.filter(function(s){ return s.date === dateF; }) : sessions.filter(function(s){ return s.date && s.date.slice(0,7) === currentMonthKey(); });
   var totals = {};
   filtered.forEach(function(s){ totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0); });
   var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
   packers.sort(function(a,b){ return totals[b]-totals[a]; });
 
-  document.getElementById('rankRangeLabel').textContent = dateF ? ('วันที่ ' + dateF) : 'รวมทุกวันที่มีข้อมูล';
+  document.getElementById('rankRangeLabel').textContent = dateF ? ('วันที่ ' + dateF) : 'เดือนนี้ (ขอบเขตเดียวกับกราฟวงกลมด้านล่าง)';
 
   var box = document.getElementById('rankChart');
   var empty = document.getElementById('rankEmpty');
