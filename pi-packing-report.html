@@ -208,15 +208,6 @@
     <div class="bar-chart" id="weeklyBarChart"></div>
   </div>
 
-  <div class="card">
-    <div class="toolbar" style="margin-bottom:6px;">
-      <p class="section-label" style="margin:0;">📋 จำนวนออเดอร์รายวัน (มุมมองรายวัน — เลือกดูวันไหนก็ได้)</p>
-      <input type="date" id="dailyOrderDate" style="max-width:190px;">
-    </div>
-    <p class="hint">จำนวนที่แพ็คในวันที่เลือก (นับจากวันที่แพ็คจริง) แยกตามคนแพ็ค — รวมทุกคนแพ็ค</p>
-    <div id="dailyOrderChart"></div>
-    <div class="empty" id="dailyOrderEmpty" style="display:none;">ไม่มีข้อมูลของวันนี้</div>
-  </div>
   </main>
 </div>
 
@@ -300,28 +291,6 @@ function renderWeeklyBarChart(){
   }).join('');
 }
 
-function renderDailyOrderChart(){
-  var dateSel = document.getElementById('dailyOrderDate').value;
-  var sessions = getPackingData();
-  var totals = {};
-  sessions.forEach(function(s){
-    if(s.date !== dateSel) return;
-    totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0);
-  });
-  var packers = Object.keys(totals).filter(function(k){ return totals[k] > 0; });
-  packers.sort(function(a,b){ return totals[b]-totals[a]; });
-  var box = document.getElementById('dailyOrderChart');
-  var empty = document.getElementById('dailyOrderEmpty');
-  if(!packers.length){ empty.style.display = 'block'; box.innerHTML = ''; return; }
-  empty.style.display = 'none';
-  var max = totals[packers[0]];
-  box.innerHTML = packers.map(function(k){
-    var pct = Math.round((totals[k]/max)*100);
-    return '<div class="hbar-row"><span class="hbar-name">'+k+'</span><div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;"><span class="hbar-val">'+totals[k]+'</span></div></div></div>';
-  }).join('');
-}
-document.getElementById('dailyOrderDate').valueAsDate = new Date();
-document.getElementById('dailyOrderDate').addEventListener('change', renderDailyOrderChart);
 
 function lookupByProductDate(){
   var product = document.getElementById('lookupProduct').value.trim().toLowerCase();
@@ -393,7 +362,6 @@ document.getElementById('clearRankDateBtn').addEventListener('click', function()
 renderKPIsAndPie();
 renderRankChart();
 renderWeeklyBarChart();
-renderDailyOrderChart();
 </script>
 
 </body>
