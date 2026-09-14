@@ -199,9 +199,13 @@
     </div>
 
     <div class="month-card" style="margin-top:22px;">
-      <p class="section-label">🎉 จบเดือนนี้แล้ว?</p>
-      <p class="hint">กดเมื่อลงข้อมูลของเดือนนี้ครบแล้ว ระบบจะส่งออกข้อมูลงานแพ็ค "เดือนปัจจุบัน" ทั้งหมดเป็นไฟล์ให้ดาวน์โหลด แล้วลบออกจากเว็บ เริ่มเดือนใหม่ทันที — อยากดูย้อนหลังหลายเดือน เปิดไฟล์ที่เคยส่งออกไว้ดูได้เลย</p>
-      <button class="btn-main" id="finishPackingMonthBtn">ปิดรอบเดือนนี้ (ส่งออกไฟล์)</button>
+      <p class="section-label">🎉 ปิดรอบเดือน</p>
+      <p class="hint">เลือกเดือนที่ต้องการปิด ระบบจะส่งออกและลบเฉพาะข้อมูลของเดือนนั้น ข้อมูลเดือนอื่นจะยังอยู่ครบ</p>
+      <div style="max-width:340px; margin:12px 0;">
+        <label for="finishPackingMonthSelect">เลือกเดือนที่จะปิดรอบ</label>
+        <select id="finishPackingMonthSelect"></select>
+      </div>
+      <button class="btn-main" id="finishPackingMonthBtn">ปิดรอบเดือนที่เลือก (ส่งออกไฟล์)</button>
     </div>
   </div>
 
@@ -473,18 +477,28 @@ function exportPackingCSV(sessions, filename){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+function renderFinishPackingMonths(){
+  var all = [];
+  try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+  var months = Array.from(new Set(all.map(function(r){ return (r.date || '').slice(0,7); }).filter(Boolean))).sort().reverse();
+  var select = document.getElementById('finishPackingMonthSelect');
+  select.innerHTML = months.length ? months.map(function(m){ return '<option value="' + m + '">' + monthLabelPacking(m) + '</option>'; }).join('') : '<option value="">ยังไม่มีข้อมูลให้ปิดรอบ</option>';
+  document.getElementById('finishPackingMonthBtn').disabled = !months.length;
+}
 document.getElementById('finishPackingMonthBtn').addEventListener('click', function(){
-  var curMonth = currentMonthKeyPacking();
+  var curMonth = document.getElementById('finishPackingMonthSelect').value;
   var all = [];
   try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
   var monthSessions = all.filter(function(r){ return r.date && r.date.slice(0,7) === curMonth; });
-  if(!monthSessions.length){ showToast('ยังไม่มีข้อมูลของเดือนนี้ให้ส่งออก', true); return; }
-  if(!confirm('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' — ส่งออก ' + monthSessions.length + ' รอบงานเป็นไฟล์ แล้วลบออกจากเว็บ เริ่มเดือนใหม่?\n\nดาวน์โหลดไฟล์ไว้ก่อน กดยืนยันแล้วลบออกจากเว็บทันที กู้คืนไม่ได้')) return;
+  if(!monthSessions.length){ showToast('ยังไม่มีข้อมูลของเดือนที่เลือกให้ส่งออก', true); return; }
+  var msg = 'ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' — ส่งออก ' + monthSessions.length + ' รอบงานเป็นไฟล์ แล้วลบเฉพาะข้อมูลเดือนนี้ออกจากเว็บ?\\n\\nดาวน์โหลดไฟล์ไว้ก่อน กดยืนยันแล้วลบออกจากเว็บทันที กู้คืนไม่ได้';
+  if(!confirm(msg)) return;
   exportPackingCSV(monthSessions, 'คนแพ็ค_' + curMonth + '.csv');
   var remaining = all.filter(function(r){ return !(r.date && r.date.slice(0,7) === curMonth); });
   try{ localStorage.setItem('pi_packing_manual', JSON.stringify(remaining)); } catch(e){}
   renderPackerSummary();
-  showToast('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' แล้ว เริ่มเดือนใหม่ได้เลย');
+  renderFinishPackingMonths();
+  showToast('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' แล้ว');
 });
 
 // ===== กรอกเอง (แมนนวล พร้อมรูปหลักฐาน) =====
@@ -626,6 +640,7 @@ renderProductList();
 populateProductDatalist();
 renderManualList();
 renderPackerSummary();
+renderFinishPackingMonths();
 </script>
 </body>
 </html>
