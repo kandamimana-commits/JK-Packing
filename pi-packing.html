@@ -543,12 +543,10 @@ flatpickr('#orderDateRangeInput', {
 });
 
 function updateOrderDateRangeVisibility(){
-  var packer = document.getElementById('manualPacker').value;
   var row = document.getElementById('orderDateRangeRow');
   var hint = document.getElementById('orderDateHint');
-  var show = packer !== 'วาวา';
-  row.style.display = show ? 'block' : 'none';
-  hint.style.display = show ? 'block' : 'none';
+  row.style.display = 'block';
+  hint.style.display = 'block';
 }
 document.getElementById('manualPacker').addEventListener('change', updateOrderDateRangeVisibility);
 
@@ -590,15 +588,12 @@ function addManualProduct(){
   var product = document.getElementById('manualProduct').value.trim();
   var qty = document.getElementById('manualQty').value.trim();
   if(!product || !qty){ showToast('กรอกชื่อสินค้าและจำนวนก่อน', true); return; }
-  var packer = document.getElementById('manualPacker').value;
   var item = {product:product, qty:parseFloat(qty)||0};
-  if(packer !== 'วาวา'){
-    var from = document.getElementById('orderDateFrom').value;
-    var to = document.getElementById('orderDateTo').value;
-    if(!from){ showToast('ระบุวันที่มีออเดอร์ก่อน (อย่างน้อยวันเริ่ม)', true); return; }
-    item.orderDateFrom = from;
-    item.orderDateTo = to || from;
-  }
+  var from = document.getElementById('orderDateFrom').value;
+  var to = document.getElementById('orderDateTo').value;
+  if(!from){ showToast('ระบุวันที่มีออเดอร์ก่อน (อย่างน้อยวันเริ่ม)', true); return; }
+  item.orderDateFrom = from;
+  item.orderDateTo = to || from;
   manualList.push(item);
   document.getElementById('manualProduct').value = '';
   document.getElementById('manualQty').value = '';
