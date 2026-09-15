@@ -52,6 +52,22 @@
     });
   }
 
+  function renderAccountButton(){
+    if(document.getElementById('packingAccountButton')) return;
+    var button = document.createElement('button');
+    button.id = 'packingAccountButton';
+    button.type = 'button';
+    button.title = 'ออกจากระบบ';
+    button.textContent = (state.profile && state.profile.display_name ? state.profile.display_name : 'บัญชีผู้ใช้') + ' · ออกจากระบบ';
+    button.style.cssText = 'position:fixed;right:18px;top:16px;z-index:9000;border:1px solid #765838;border-radius:999px;padding:9px 13px;background:#2d2115;color:#fff3df;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.2)';
+    button.addEventListener('click', async function(){
+      if(!confirm('ออกจากระบบใช่ไหม?')) return;
+      await client.auth.signOut();
+      location.reload();
+    });
+    document.body.appendChild(button);
+  }
+
   async function loadProfile(){
     var userResult = await client.auth.getUser();
     if(!userResult.data.user) return null;
@@ -181,6 +197,7 @@
       writeLocal(cloud);
       state.ready = true;
       window.PackingCloud = { client:client, profile:state.profile, sync:queueSync, signOut:async function(){ await client.auth.signOut(); location.reload(); } };
+      renderAccountButton();
       window.dispatchEvent(new CustomEvent('packingcloudready', {detail:{profile:state.profile}}));
     } catch(error) {
       console.error('Packing cloud bootstrap error', error);
