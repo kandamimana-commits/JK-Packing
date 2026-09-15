@@ -412,7 +412,7 @@ function renderSavedHistory(){
     var rangeLabel = r.orderDateFrom ? (r.orderDateFrom === r.orderDateTo ? r.orderDateFrom : r.orderDateFrom+' ถึง '+r.orderDateTo) : '-';
     var packerOptions = packerOptionsFromHistory().map(function(p){ return '<option value="'+p+'"'+(p === r.packer ? ' selected' : '')+'>'+p+'</option>'; }).join('');
     return '<tr>' +
-      '<td class="mono" style="font-size:11px; color:var(--text-muted);">'+r.date+'</td>' +
+      '<td><input type="date" class="savedDateEdit" data-si="'+r.si+'" value="'+r.date+'" style="height:30px; font-size:11px; min-width:126px;"></td>' +
       '<td><select class="savedPackerEdit" data-si="'+r.si+'" style="height:30px; font-size:12px; min-width:82px;">'+packerOptions+'</select></td>' +
       '<td><input type="text" class="savedEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" data-field="product" value="'+r.product+'" style="height:30px; font-size:12px;"></td>' +
       '<td><input type="number" class="savedEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" data-field="qty" value="'+r.qty+'" style="height:30px; font-size:12px;"></td>' +
@@ -445,6 +445,18 @@ function renderSavedHistory(){
       try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
       renderPackerSummary();
       showToast('ย้ายรอบงานนี้ไปให้ ' + el.value + ' แล้ว');
+    });
+  });
+  body.querySelectorAll('.savedDateEdit').forEach(function(el){
+    el.addEventListener('change', function(){
+      var si = parseInt(el.getAttribute('data-si'));
+      var all = [];
+      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      if(!all[si] || !el.value) return;
+      all[si].date = el.value;
+      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      renderPackerSummary();
+      showToast('ย้ายรอบงานนี้ไปวันที่ ' + el.value + ' แล้ว');
     });
   });
   body.querySelectorAll('[data-delsaved-si]').forEach(function(el){
