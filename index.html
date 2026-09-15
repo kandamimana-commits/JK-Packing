@@ -212,7 +212,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="packing-cloud.js"></script>
+<script src="packing-public-report.js"></script>
 <script>
 var PACKER_COLORS = ['#FF7A55','#5FA980','#E8B84B','#7C93AA','#C77DFF','#4FB8C4','#D4879C','#8FAE5F'];
 function getPackingData(){
@@ -364,7 +364,7 @@ document.getElementById('clearRankDateBtn').addEventListener('click', function()
 renderKPIsAndPie();
 renderRankChart();
 renderWeeklyBarChart();
-window.addEventListener('packingcloudready', function(){
+window.addEventListener('packingpublicready', function(){
   renderKPIsAndPie();
   renderRankChart();
   renderWeeklyBarChart();
