@@ -229,6 +229,8 @@
 
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toastMsg"></span></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="packing-cloud.js"></script>
 <script>
 function showToast(msg, warn){
   var t = document.getElementById('toast');
@@ -701,6 +703,12 @@ populateProductDatalist();
 renderManualList();
 renderPackerSummary();
 renderFinishPackingMonths();
+window.addEventListener('packingcloudready', function(){
+  populateManualPackerSelect();
+  renderManualList();
+  renderPackerSummary();
+  renderFinishPackingMonths();
+});
 </script>
 </body>
 </html>
