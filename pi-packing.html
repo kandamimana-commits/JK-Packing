@@ -416,7 +416,15 @@ function renderSavedHistory(){
       '<td><select class="savedPackerEdit" data-si="'+r.si+'" style="height:30px; font-size:12px; min-width:82px;">'+packerOptions+'</select></td>' +
       '<td><input type="text" class="savedEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" data-field="product" value="'+r.product+'" style="height:30px; font-size:12px;"></td>' +
       '<td><input type="number" class="savedEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" data-field="qty" value="'+r.qty+'" style="height:30px; font-size:12px;"></td>' +
-      '<td style="font-size:11px; color:var(--text-muted);">'+rangeLabel+'</td>' +
+      '<td style="font-size:11px; color:var(--text-muted);">' +
+        '<span>'+rangeLabel+'</span> <button type="button" class="editOrderDateBtn" data-si="'+r.si+'" data-pi="'+r.pi+'" style="border:0; background:transparent; color:var(--text-muted); cursor:pointer; padding:2px 0 2px 5px;" title="แก้วันที่ออเดอร์"><i class="ti ti-pencil"></i></button>' +
+        '<div class="orderDateEditor" data-order-date-editor="'+r.si+'-'+r.pi+'" style="display:none; margin-top:6px; white-space:nowrap;">' +
+          '<input type="date" class="orderDateFromEdit" value="'+r.orderDateFrom+'" style="height:28px; width:118px; font-size:10px;">' +
+          '<span>–</span><input type="date" class="orderDateToEdit" value="'+r.orderDateTo+'" style="height:28px; width:118px; font-size:10px;">' +
+          '<button type="button" class="saveOrderDateEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" style="border:0; background:transparent; color:var(--text-success); cursor:pointer; padding-left:5px;" title="บันทึก"><i class="ti ti-check"></i></button>' +
+          '<button type="button" class="cancelOrderDateEdit" data-si="'+r.si+'" data-pi="'+r.pi+'" style="border:0; background:transparent; color:var(--text-muted); cursor:pointer;" title="ยกเลิก"><i class="ti ti-x"></i></button>' +
+        '</div>' +
+      '</td>' +
       '<td><i class="ti ti-trash" data-delsaved-si="'+r.si+'" data-delsaved-pi="'+r.pi+'" style="color:var(--text-muted); cursor:pointer;"></i></td>' +
     '</tr>';
   }).join('');
@@ -457,6 +465,38 @@ function renderSavedHistory(){
       try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
       renderPackerSummary();
       showToast('ย้ายรอบงานนี้ไปวันที่ ' + el.value + ' แล้ว');
+    });
+  });
+  body.querySelectorAll('.editOrderDateBtn').forEach(function(el){
+    el.addEventListener('click', function(){
+      var key = el.getAttribute('data-si') + '-' + el.getAttribute('data-pi');
+      var editor = body.querySelector('[data-order-date-editor="'+key+'"]');
+      if(editor) editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+    });
+  });
+  body.querySelectorAll('.cancelOrderDateEdit').forEach(function(el){
+    el.addEventListener('click', function(){
+      var key = el.getAttribute('data-si') + '-' + el.getAttribute('data-pi');
+      var editor = body.querySelector('[data-order-date-editor="'+key+'"]');
+      if(editor) editor.style.display = 'none';
+    });
+  });
+  body.querySelectorAll('.saveOrderDateEdit').forEach(function(el){
+    el.addEventListener('click', function(){
+      var si = parseInt(el.getAttribute('data-si'));
+      var pi = parseInt(el.getAttribute('data-pi'));
+      var editor = body.querySelector('[data-order-date-editor="'+si+'-'+pi+'"]');
+      var from = editor.querySelector('.orderDateFromEdit').value;
+      var to = editor.querySelector('.orderDateToEdit').value;
+      if(!from){ showToast('เลือกวันที่ออเดอร์ก่อน', true); return; }
+      var all = [];
+      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      if(!all[si] || !all[si].products[pi]) return;
+      all[si].products[pi].orderDateFrom = from;
+      all[si].products[pi].orderDateTo = to || from;
+      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      renderPackerSummary();
+      showToast('แก้ช่วงวันที่ออเดอร์แล้ว');
     });
   });
   body.querySelectorAll('[data-delsaved-si]').forEach(function(el){
