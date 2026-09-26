@@ -212,11 +212,11 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="packing-public-report.js"></script>
+<script src="packing-public-report.js?v=20260926-direct"></script>
 <script>
 var PACKER_COLORS = ['#FF7A55','#5FA980','#E8B84B','#7C93AA','#C77DFF','#4FB8C4','#D4879C','#8FAE5F'];
 function getPackingData(){
-  try{ return JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ return []; }
+  try{ return (window.PackingPublicRows || []); } catch(e){ return []; }
 }
 function currentMonthKey(){
   var now = new Date();

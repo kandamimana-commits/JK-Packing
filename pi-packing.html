@@ -179,7 +179,7 @@
       </table>
       <div class="empty" id="manualListEmpty">ยังไม่มีรายการ — เพิ่มสินค้าด้านบนก่อนนะ</div>
     </div>
-    <button class="btn-dark" id="saveManualAllBtn" style="margin-top:14px;">💾 บันทึกทั้งหมด (เก็บเป็นข้อมูลแบ็กอัพ)</button>
+    <button class="btn-dark" id="saveManualAllBtn" style="margin-top:14px;">💾 บันทึกทั้งหมดลง Supabase</button>
 
     <p class="section-label" style="margin-top:28px;">📊 สรุปยอดต่อคนแพ็ค</p>
     <div class="toolbar">
@@ -230,7 +230,8 @@
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toastMsg"></span></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="packing-cloud.js?v=20260926-password-reset"></script>
+<script src="packing-storage.js?v=20260926-direct"></script>
+<script src="packing-cloud.js?v=20260926-direct"></script>
 <script>
 function showToast(msg, warn){
   var t = document.getElementById('toast');
@@ -242,7 +243,7 @@ function showToast(msg, warn){
 document.getElementById('summaryDate').value = new Date().toISOString().slice(0,10);
 
 document.querySelectorAll('.tab-btn').forEach(function(btn){
-  btn.addEventListener('click', function(){
+  btn.addEventListener('click', async function(){
     document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
     btn.classList.add('active');
     var t = btn.getAttribute('data-ptab');
@@ -254,9 +255,9 @@ document.querySelectorAll('.tab-btn').forEach(function(btn){
 
 // ===== รายชื่อสินค้า (ใช้เป็น autocomplete ตอนกรอกเอง) =====
 function getProductList(){
-  try{ return JSON.parse(localStorage.getItem('pi_packing_products') || '[]'); } catch(e){ return []; }
+  try{ return window.PackingCloud.products(); } catch(e){ return []; }
 }
-function saveProductList(list){ try{ localStorage.setItem('pi_packing_products', JSON.stringify(list)); } catch(e){} }
+async function saveProductList(list){ try{ await window.PackingCloud.saveProducts(list); return true; } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return false; } }
 
 function renderProductList(){
   var list = getProductList();
@@ -265,10 +266,10 @@ function renderProductList(){
     return '<tr><td>'+name+'</td><td><i class="ti ti-trash" data-delprod="'+i+'" style="color:var(--text-muted); cursor:pointer;"></i></td></tr>';
   }).join('');
   document.querySelectorAll('[data-delprod]').forEach(function(el){
-    el.addEventListener('click', function(){
+    el.addEventListener('click', async function(){
       var list2 = getProductList();
       list2.splice(parseInt(el.getAttribute('data-delprod')), 1);
-      saveProductList(list2);
+      if(!await saveProductList(list2)) return;
       renderProductList();
       populateProductDatalist();
     });
@@ -341,16 +342,16 @@ document.getElementById('manualProduct').addEventListener('keydown', function(e)
     panel.style.display = 'none';
   }
 });
-document.addEventListener('click', function(e){
+document.addEventListener('click', async function(e){
   if(!e.target.closest('.suggest-wrap')) document.getElementById('productSuggest').style.display = 'none';
 });
 
-document.getElementById('productListFile').addEventListener('change', function(e){
+document.getElementById('productListFile').addEventListener('change', async function(e){
   var f = e.target.files[0];
   document.getElementById('productListFileLabel').textContent = f ? f.name : 'เลือกไฟล์ Excel/CSV';
   if(!f) return;
   var reader = new FileReader();
-  reader.onload = function(ev){
+  reader.onload = async function(ev){
     try{
       var wb = XLSX.read(ev.target.result, {type:'array'});
       var data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
@@ -361,7 +362,7 @@ document.getElementById('productListFile').addEventListener('change', function(e
       var names = data.map(function(row){ return String(row[nameCol]||'').trim(); }).filter(Boolean);
       names = Array.from(new Set(names)); // ตัดชื่อซ้ำ
       if(!names.length){ showToast('อ่านไฟล์ไม่พบชื่อสินค้า', true); return; }
-      saveProductList(names);
+      if(!await saveProductList(names)) return;
       renderProductList();
       populateProductDatalist();
       showToast('อัปเดตรายชื่อสินค้าแล้ว ' + names.length + ' รายการ (แทนที่รายชื่อเดิมทั้งหมด)');
@@ -376,7 +377,7 @@ document.getElementById('productListFile').addEventListener('change', function(e
 function renderPackerSummary(){
   var dateF = document.getElementById('summaryDate').value;
   var sessions = [];
-  try{ sessions = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ sessions = []; }
+  try{ sessions = window.PackingCloud.read(); } catch(e){ sessions = []; }
   var filtered = dateF ? sessions.filter(function(s){ return s.date === dateF; }) : sessions;
   var totals = {};
   filtered.forEach(function(s){ totals[s.packer] = (totals[s.packer]||0) + (s.totalQty||0); });
@@ -393,14 +394,14 @@ function renderPackerSummary(){
   renderSavedHistory();
 }
 document.getElementById('summaryDate').addEventListener('change', renderPackerSummary);
-document.getElementById('clearSummaryDateBtn').addEventListener('click', function(){
+document.getElementById('clearSummaryDateBtn').addEventListener('click', async function(){
   document.getElementById('summaryDate').value = '';
   renderPackerSummary();
 });
 
 function renderSavedHistory(){
   var data = [];
-  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
+  try{ data = window.PackingCloud.read(); } catch(e){ data = []; }
   var rows = [];
   data.forEach(function(session, si){
     (session.products||[]).forEach(function(p, pi){
@@ -409,10 +410,11 @@ function renderSavedHistory(){
   });
   rows.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var body = document.getElementById('savedHistoryBody');
+  var historyPackerNames = packerOptionsFromHistory();
   document.getElementById('savedHistoryEmpty').style.display = rows.length ? 'none' : 'block';
   body.innerHTML = rows.map(function(r){
     var rangeLabel = r.orderDateFrom ? (r.orderDateFrom === r.orderDateTo ? r.orderDateFrom : r.orderDateFrom+' ถึง '+r.orderDateTo) : '-';
-    var packerOptions = packerOptionsFromHistory().map(function(p){ return '<option value="'+p+'"'+(p === r.packer ? ' selected' : '')+'>'+p+'</option>'; }).join('');
+    var packerOptions = historyPackerNames.map(function(p){ return '<option value="'+p+'"'+(p === r.packer ? ' selected' : '')+'>'+p+'</option>'; }).join('');
     return '<tr>' +
       '<td><input type="date" class="savedDateEdit" data-si="'+r.si+'" value="'+r.date+'" style="height:30px; font-size:11px; min-width:126px;"></td>' +
       '<td><select class="savedPackerEdit" data-si="'+r.si+'" style="height:30px; font-size:12px; min-width:82px;">'+packerOptions+'</select></td>' +
@@ -432,59 +434,59 @@ function renderSavedHistory(){
   }).join('');
 
   body.querySelectorAll('.savedEdit').forEach(function(el){
-    el.addEventListener('change', function(){
+    el.addEventListener('change', async function(){
       var si = parseInt(el.getAttribute('data-si'));
       var pi = parseInt(el.getAttribute('data-pi'));
       var field = el.getAttribute('data-field');
       var all = [];
-      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
       all[si].products[pi][field] = field === 'qty' ? (parseFloat(el.value)||0) : el.value.trim();
       all[si].totalQty = all[si].products.reduce(function(s,p){ return s+(p.qty||0); }, 0);
-      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      try{ await window.PackingCloud.saveSession(all[si]); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
       renderPackerSummary();
       showToast('แก้ไขแล้ว');
     });
   });
   body.querySelectorAll('.savedPackerEdit').forEach(function(el){
-    el.addEventListener('change', function(){
+    el.addEventListener('change', async function(){
       var si = parseInt(el.getAttribute('data-si'));
       var all = [];
-      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
       if(!all[si]) return;
       all[si].packer = el.value;
-      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      try{ await window.PackingCloud.saveSession(all[si]); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
       renderPackerSummary();
       showToast('ย้ายรอบงานนี้ไปให้ ' + el.value + ' แล้ว');
     });
   });
   body.querySelectorAll('.savedDateEdit').forEach(function(el){
-    el.addEventListener('change', function(){
+    el.addEventListener('change', async function(){
       var si = parseInt(el.getAttribute('data-si'));
       var all = [];
-      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
       if(!all[si] || !el.value) return;
       all[si].date = el.value;
-      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      try{ await window.PackingCloud.saveSession(all[si]); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
       renderPackerSummary();
       showToast('ย้ายรอบงานนี้ไปวันที่ ' + el.value + ' แล้ว');
     });
   });
   body.querySelectorAll('.editOrderDateBtn').forEach(function(el){
-    el.addEventListener('click', function(){
+    el.addEventListener('click', async function(){
       var key = el.getAttribute('data-si') + '-' + el.getAttribute('data-pi');
       var editor = body.querySelector('[data-order-date-editor="'+key+'"]');
       if(editor) editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
     });
   });
   body.querySelectorAll('.cancelOrderDateEdit').forEach(function(el){
-    el.addEventListener('click', function(){
+    el.addEventListener('click', async function(){
       var key = el.getAttribute('data-si') + '-' + el.getAttribute('data-pi');
       var editor = body.querySelector('[data-order-date-editor="'+key+'"]');
       if(editor) editor.style.display = 'none';
     });
   });
   body.querySelectorAll('.saveOrderDateEdit').forEach(function(el){
-    el.addEventListener('click', function(){
+    el.addEventListener('click', async function(){
       var si = parseInt(el.getAttribute('data-si'));
       var pi = parseInt(el.getAttribute('data-pi'));
       var editor = body.querySelector('[data-order-date-editor="'+si+'-'+pi+'"]');
@@ -492,28 +494,29 @@ function renderSavedHistory(){
       var to = editor.querySelector('.orderDateToEdit').value;
       if(!from){ showToast('เลือกวันที่ออเดอร์ก่อน', true); return; }
       var all = [];
-      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
       if(!all[si] || !all[si].products[pi]) return;
       all[si].products[pi].orderDateFrom = from;
       all[si].products[pi].orderDateTo = to || from;
-      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      try{ await window.PackingCloud.saveSession(all[si]); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
       renderPackerSummary();
       showToast('แก้ช่วงวันที่ออเดอร์แล้ว');
     });
   });
   body.querySelectorAll('[data-delsaved-si]').forEach(function(el){
-    el.addEventListener('click', function(){
+    el.addEventListener('click', async function(){
       var si = parseInt(el.getAttribute('data-delsaved-si'));
       var pi = parseInt(el.getAttribute('data-delsaved-pi'));
       var all = [];
-      try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+      try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
+      var deletedSession = all[si];
       all[si].products.splice(pi, 1);
       if(all[si].products.length){
         all[si].totalQty = all[si].products.reduce(function(s,p){ return s+(p.qty||0); }, 0);
       } else {
         all.splice(si, 1); // เซสชันไม่มีสินค้าเหลือแล้ว ลบทั้งเซสชันทิ้ง
       }
-      try{ localStorage.setItem('pi_packing_manual', JSON.stringify(all)); } catch(e){}
+      try{ (deletedSession.products.length ? await window.PackingCloud.saveSession(deletedSession) : await window.PackingCloud.deleteSessions([deletedSession])); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
       renderPackerSummary();
       showToast('ลบรายการแล้ว');
     });
@@ -546,23 +549,22 @@ function exportPackingCSV(sessions, filename){
 }
 function renderFinishPackingMonths(){
   var all = [];
-  try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+  try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
   var months = Array.from(new Set(all.map(function(r){ return (r.date || '').slice(0,7); }).filter(Boolean))).sort().reverse();
   var select = document.getElementById('finishPackingMonthSelect');
   select.innerHTML = months.length ? months.map(function(m){ return '<option value="' + m + '">' + monthLabelPacking(m) + '</option>'; }).join('') : '<option value="">ยังไม่มีข้อมูลให้ปิดรอบ</option>';
   document.getElementById('finishPackingMonthBtn').disabled = !months.length;
 }
-document.getElementById('finishPackingMonthBtn').addEventListener('click', function(){
+document.getElementById('finishPackingMonthBtn').addEventListener('click', async function(){
   var curMonth = document.getElementById('finishPackingMonthSelect').value;
   var all = [];
-  try{ all = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ all = []; }
+  try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
   var monthSessions = all.filter(function(r){ return r.date && r.date.slice(0,7) === curMonth; });
   if(!monthSessions.length){ showToast('ยังไม่มีข้อมูลของเดือนที่เลือกให้ส่งออก', true); return; }
   var msg = 'ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' — ส่งออก ' + monthSessions.length + ' รอบงานเป็นไฟล์ แล้วลบเฉพาะข้อมูลเดือนนี้ออกจากเว็บ?\\n\\nดาวน์โหลดไฟล์ไว้ก่อน กดยืนยันแล้วลบออกจากเว็บทันที กู้คืนไม่ได้';
   if(!confirm(msg)) return;
   exportPackingCSV(monthSessions, 'คนแพ็ค_' + curMonth + '.csv');
-  var remaining = all.filter(function(r){ return !(r.date && r.date.slice(0,7) === curMonth); });
-  try{ localStorage.setItem('pi_packing_manual', JSON.stringify(remaining)); } catch(e){}
+  try{ await window.PackingCloud.deleteSessions(monthSessions); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
   renderPackerSummary();
   renderFinishPackingMonths();
   showToast('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' แล้ว');
@@ -576,7 +578,7 @@ var manualPhotoMeta = null;
 function packerOptionsFromHistory(){
   var defaults = ['พรีม','เก็ก','กรุ๊ป','วาวา'];
   var data = [];
-  try{ data = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ data = []; }
+  try{ data = window.PackingCloud.read(); } catch(e){ data = []; }
   var set = new Set(defaults);
   data.forEach(function(r){ if(r.packer) set.add(r.packer); });
   return Array.from(set).sort();
@@ -617,7 +619,7 @@ function updateOrderDateRangeVisibility(){
 }
 document.getElementById('manualPacker').addEventListener('change', updateOrderDateRangeVisibility);
 
-document.getElementById('manualPhoto').addEventListener('change', function(e){
+document.getElementById('manualPhoto').addEventListener('change', async function(e){
   var f = e.target.files[0];
   if(!f) return;
   manualPhotoMeta = {name:f.name, size:f.size, uploadedAt:new Date().toLocaleString('th-TH')};
@@ -637,14 +639,14 @@ function renderManualList(){
       '<td><i class="ti ti-trash" data-delmanual="'+i+'" style="color:var(--text-muted); cursor:pointer;"></i></td></tr>';
   }).join('');
   body.querySelectorAll('.preSaveEdit').forEach(function(el){
-    el.addEventListener('change', function(){
+    el.addEventListener('change', async function(){
       var i = parseInt(el.getAttribute('data-i'));
       var field = el.getAttribute('data-field');
       manualList[i][field] = field === 'qty' ? (parseFloat(el.value)||0) : el.value.trim();
     });
   });
   body.querySelectorAll('[data-delmanual]').forEach(function(el){
-    el.addEventListener('click', function(){
+    el.addEventListener('click', async function(){
       manualList.splice(parseInt(el.getAttribute('data-delmanual')), 1);
       renderManualList();
     });
@@ -675,18 +677,18 @@ document.getElementById('manualQty').addEventListener('keydown', function(e){
   }
 });
 
-document.getElementById('saveManualAllBtn').addEventListener('click', function(){
+document.getElementById('saveManualAllBtn').addEventListener('click', async function(){
   if(!manualList.length){ showToast('ยังไม่มีรายการที่เพิ่มไว้', true); return; }
   var date = document.getElementById('manualDate').value;
   var packer = document.getElementById('manualPacker').value;
   var existing = [];
-  try{ existing = JSON.parse(localStorage.getItem('pi_packing_manual') || '[]'); } catch(e){ existing = []; }
+  try{ existing = window.PackingCloud.read(); } catch(e){ existing = []; }
   existing.push({
     date: date, packer: packer, products: manualList.slice(),
     totalQty: manualList.reduce(function(s,it){ return s+it.qty; }, 0),
     photo: manualPhotoMeta, savedAt: new Date().toLocaleString('th-TH')
   });
-  try{ localStorage.setItem('pi_packing_manual', JSON.stringify(existing)); } catch(e){}
+  try{ await window.PackingCloud.saveSession(existing[existing.length-1]); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
 
   showToast('บันทึกข้อมูลของ ' + packer + ' วันที่ ' + date + ' แล้ว (' + manualList.length + ' สินค้า)');
   manualList = [];
@@ -704,6 +706,7 @@ renderManualList();
 renderPackerSummary();
 renderFinishPackingMonths();
 window.addEventListener('packingcloudready', function(){
+  renderProductList();
   populateManualPackerSelect();
   renderManualList();
   renderPackerSummary();
