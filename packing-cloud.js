@@ -38,7 +38,8 @@
       '<div id="packingLoginBox"><h1>JK888 Packing</h1><p>กรุณาเข้าสู่ระบบก่อนใช้งานข้อมูลแพ็ก</p>' +
       '<label for="packingLoginEmail">อีเมล</label><input id="packingLoginEmail" type="email" autocomplete="email" required>' +
       '<label for="packingLoginPassword">รหัสผ่าน</label><input id="packingLoginPassword" type="password" autocomplete="current-password" required>' +
-      '<button id="packingLoginButton" type="button">เข้าสู่ระบบ</button><p id="packingLoginMessage"></p></div>';
+      '<button id="packingLoginButton" type="button">เข้าสู่ระบบ</button><p id="packingLoginMessage" role="status"></p>' +
+      '<a href="packing-reset-password.html" style="display:inline-block;padding:8px 0;color:#ffb49c">ลืมรหัสผ่าน / ตั้งรหัสใหม่</a></div>';
     document.body.appendChild(el);
     document.getElementById('packingLoginButton').addEventListener('click', async function(){
       var email = document.getElementById('packingLoginEmail').value.trim();
