@@ -149,6 +149,15 @@
     <p class="pagesub">ดึงข้อมูลงานแพ็คออกมาเป็นไฟล์ ไม่ลบอะไรออกจากเว็บ</p>
 
     <div class="card">
+      <p class="section-label">แบ็กอัพย้อนหลัง</p>
+      <p class="hint">ข้อมูลที่ปิดรอบแล้วเก็บบน Cloud และดาวน์โหลดซ้ำได้ ไม่รวมในงานเดือนใหม่</p>
+      <label for="archiveSelect">เลือกเดือน / สำเนา</label>
+      <select id="archiveSelect"><option value="">กำลังโหลดแบ็กอัพ…</option></select>
+      <p id="archiveStatus" class="hint" role="status" style="margin-top:12px"></p>
+      <button id="archiveDownload" class="btn-main" disabled>ดาวน์โหลดแบ็กอัพ CSV</button>
+      <button id="archiveRefresh" class="btn-ghost">โหลดรายการแบ็กอัพใหม่</button>
+    </div>
+    <div class="card">
       <p class="section-label">🗓️ เลือกช่วงที่จะ Export</p>
       <div class="seg-control" style="margin-bottom:18px;">
         <button class="seg-btn active" id="segMonth">รายเดือน</button>
@@ -180,8 +189,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="packing-storage.js?v=20260926-direct"></script>
-<script src="packing-cloud.js?v=20260926-direct"></script>
+<script src="packing-storage.js?v=20261009-archive"></script>
+<script src="packing-cloud.js?v=20261009-archive"></script>
+<script src="packing-export.js?v=20261009-archive"></script>
 <script>
 function getPackingData(){
   try{ return window.PackingCloud.read(); } catch(e){ return []; }
@@ -190,7 +200,7 @@ function flattenSessions(sessions){
   var rows = [];
   sessions.forEach(function(s){
     (s.products||[]).forEach(function(p){
-      var rangeLabel = p.orderDateFrom ? (p.orderDateFrom === p.orderDateTo ? p.orderDateFrom : p.orderDateFrom+' ถึง '+p.orderDateTo) : '-';
+      var rangeLabel = p.orderDateFrom ? (p.orderDateFrom === p.orderDateTo ? p.orderDateFrom : p.orderDateFrom+' ถึง '+(p.orderDateTo||p.orderDateFrom)) : 'ไม่ทราบ';
       rows.push({date:s.date, packer:s.packer, product:p.product, qty:p.qty, orderRange:rangeLabel});
     });
   });
@@ -228,6 +238,7 @@ function getFilteredRows(){
   }
 }
 
+function html(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function renderExportPreview(){
   var rows = getFilteredRows();
   var label = exportMode === 'month' ? document.getElementById('exportMonthInput').value : document.getElementById('exportDayInput').value;
@@ -235,24 +246,16 @@ function renderExportPreview(){
   var body = document.getElementById('exportPreviewBody');
   document.getElementById('exportPreviewEmpty').style.display = rows.length ? 'none' : 'block';
   body.innerHTML = rows.map(function(r){
-    return '<tr><td class="mono" style="font-size:13px;">'+r.date+'</td><td>'+r.packer+'</td><td>'+r.product+'</td><td>'+r.qty+'</td><td style="font-size:13px; color:var(--ink-soft);">'+r.orderRange+'</td></tr>';
+    return '<tr><td class="mono" style="font-size:13px;">'+html(r.date)+'</td><td>'+html(r.packer)+'</td><td>'+html(r.product)+'</td><td>'+r.qty+'</td><td style="font-size:13px; color:var(--ink-soft);">'+html(r.orderRange)+'</td></tr>';
   }).join('');
 }
 
 document.getElementById('exportGoBtn').addEventListener('click', function(){
   var rows = getFilteredRows();
   if(!rows.length){ alert('ไม่มีข้อมูลในช่วงที่เลือก'); return; }
-  var header = 'วันที่แพ็ค,คนแพ็ค,ชื่อสินค้า,จำนวน,วันที่ออเดอร์\n';
-  var lines = rows.map(function(r){
-    return [r.date, r.packer, '"'+r.product.replace(/"/g,'""')+'"', r.qty, '"'+r.orderRange+'"'].join(',');
-  });
   var label = exportMode === 'month' ? document.getElementById('exportMonthInput').value : document.getElementById('exportDayInput').value;
-  var blob = new Blob(['\uFEFF' + header + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url; a.download = 'งานแพ็ค_' + label + '.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  var sessions=getPackingData().filter(function(s){return exportMode==='month'?s.date.slice(0,7)===label:s.date===label;});
+  window.PackingExport.download(sessions,'งานแพ็ค_'+label+'.csv');
 });
 
 renderExportPreview();

@@ -95,8 +95,12 @@
       await ready;
       var content = { savedAt: new Date().toISOString(), original: await get('backup:original:pi_packing_manual'), recovered: await get('recovery-copies'), pending: await get('backup:pending'), current: cache.pi_packing_manual };
       var url = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' }));
-      var a = document.createElement('a'); a.href = url; a.download = 'packing-recovery-backup.json'; a.click();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      var old = document.getElementById('packingLegacyDownloadLink');
+      if (old) { URL.revokeObjectURL(old.href); old.remove(); }
+      var a = document.createElement('a'); a.id = 'packingLegacyDownloadLink'; a.href = url; a.download = 'packing-recovery-backup.json';
+      a.textContent = 'กดที่นี่เพื่อดาวน์โหลดสำเนาข้อมูลเดิม';
+      a.style.cssText = 'display:block;padding:14px;color:var(--tape-deep)';
+      (document.querySelector('main') || document.body).appendChild(a); a.click();
     },
     // Auth uses its own namespace; no access-token writes to localStorage.
     // No fallback to legacy tokens: a logged-out session must not resurrect.

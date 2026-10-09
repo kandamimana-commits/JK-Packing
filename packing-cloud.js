@@ -17,7 +17,7 @@
   var channel=typeof BroadcastChannel==='function'?new BroadcastChannel('jk888-packing-changes'):null;
   function clone(value){return JSON.parse(JSON.stringify(value));}
   function lockWork(on){document.querySelectorAll('main,.wrap').forEach(function(el){el.inert=on;});}
-  function notify(message,bad){if(typeof window.showToast==='function')window.showToast(message,!!bad);}
+  function notify(message,bad){status(message,bad);if(typeof window.showToast==='function')window.showToast(message,!!bad);}
   function storageError(error){
     var text=error&&error.message||'เชื่อมต่อไม่สำเร็จ';
     if(error&&error.code==='PGRST202'||/Could not find the function.*packing_web_/.test(text))return 'กรุณารัน packing-supabase-direct.sql ในโปรเจ็กต์ JK-Packing ก่อนใช้เว็บรุ่นนี้';
@@ -97,6 +97,7 @@
     if(!state.ready)throw Error('ยังโหลดข้อมูลไม่สำเร็จ');
     if(state.busy)throw Error('กำลังทำรายการ กรุณารอ');
     if(state.draft)throw Error('มีคำขอค้าง กรุณาใช้ปุ่มลองส่งคำขอเดิมก่อน');
+    changes.apiVersion=2;
     var draft={id:crypto.randomUUID(),userId:state.userId,createdAt:new Date().toISOString(),changes:clone(changes)};
     // Keep ONLY the operation as a recovery draft; never use it as the report/database.
     state.busy=true;lockWork(true);
@@ -112,6 +113,7 @@
     client:client,read:function(){return clone(state.sessions);},products:function(){return clone(state.catalog.names);},
     saveSession:function(session){return commit({sessions:[changeFor(session)]});},
     deleteSessions:function(sessions){return commit({sessions:sessions.map(function(s){if(!s._cloudId||!s._version)throw Error('ไม่มีรหัสหรือเวอร์ชันรายการ');return {action:'delete',id:s._cloudId,expected:s._version};})});},
+    archiveMonth:function(month,sessions){return commit({closeMonth:month,sessions:sessions.map(function(s){return {action:'archive',id:s._cloudId,expected:s._version};})});},
     saveProducts:function(names){return commit({sessions:[],catalog:{names:names,expected:state.catalog.revision}});},
     refresh:refresh
   };
@@ -182,13 +184,14 @@
     var catalog=[];try{catalog=JSON.parse(store.getItem('pi_packing_products')||'[]');}catch(_){}
     var ids=new Set(state.sessions.map(function(s){return s._cloudId;})), signatures=new Set(state.sessions.map(fingerprint));
     var offered=new Set();
-    var candidates=legacy.filter(function(s){var key=fingerprint(s);if(ids.has(s._cloudId)||signatures.has(key)||offered.has(key))return false;offered.add(key);return true;});
+    var historical=legacy.filter(function(s){return s.date && s.date<'2026-10-01';});
+    var candidates=legacy.filter(function(s){if(s.date && s.date<'2026-10-01')return false;var key=fingerprint(s);if(ids.has(s._cloudId)||signatures.has(key)||offered.has(key))return false;offered.add(key);return true;});
     var missing=catalog.filter(function(n){return !state.catalog.names.includes(n);});
     var previous=document.getElementById('packingLegacyReview');if(previous)previous.remove();
-    if(!candidates.length&&!missing.length)return;
+    if(!candidates.length&&!missing.length&&!historical.length)return;
     var panel=document.createElement('details');panel.id='packingLegacyReview';panel.style.cssText='padding:18px;border:1px solid #b88562;border-radius:12px;margin:16px;background:#473222;color:#fff';
     var title=document.createElement('summary');title.textContent='ตรวจข้อมูลเก่าในเครื่อง: รอบงานอาจยังไม่มีบน Cloud '+candidates.length+' รอบ / ชื่อสินค้า '+missing.length+' ชื่อ';panel.appendChild(title);
-    var note=document.createElement('p');note.textContent='ยังไม่ได้นำเข้าอัตโนมัติ ตรวจแต่ละรอบก่อนเลือก รายการที่มีรหัสหรือรายละเอียดตรงกับ Cloud จะไม่เสนอให้นำเข้าซ้ำ';panel.appendChild(note);
+    var note=document.createElement('p');note.textContent='ยังไม่ได้นำเข้าอัตโนมัติ ตรวจแต่ละรอบก่อนเลือก ข้อมูลก่อนตุลาคม 2569 เก็บให้ดาวน์โหลดสำเนาเท่านั้น ไม่เสนอให้สร้างซ้ำเป็นงานใหม่ ดูแบ็กอัพเดือนเก่าที่หน้า Export';panel.appendChild(note);
     var choices=[];
     candidates.forEach(function(s){
       var label=document.createElement('label');label.style.display='block';var checkbox=document.createElement('input');checkbox.type='checkbox';
@@ -203,7 +206,7 @@
     };
     var namesButton=document.createElement('button');namesButton.textContent='นำเข้าชื่อสินค้าที่ขาด '+missing.length+' ชื่อ';namesButton.disabled=!missing.length;
     namesButton.onclick=async function(){if(!confirm('เพิ่มชื่อสินค้าที่ขาด '+missing.length+' ชื่อ โดยไม่ลบรายชื่อบน Cloud?'))return;try{await window.PackingCloud.saveProducts(Array.from(new Set(state.catalog.names.concat(missing))));await recoveryPanel();}catch(e){notify(storageError(e),true);}};
-    var backup=document.createElement('button');backup.textContent='ดาวน์โหลดสำเนาข้อมูลเดิมทั้งหมด';backup.onclick=function(){store.downloadBackup().catch(function(e){notify(storageError(e),true);});};
+    var backup=document.createElement('button');backup.textContent='ดาวน์โหลดสำเนาข้อมูลเดิมทั้งหมด';backup.onclick=async function(){try{await store.downloadBackup();notify('เตรียมไฟล์สำรองแล้ว ถ้าไม่ดาวน์โหลดให้กดลิงก์ด้านล่าง');}catch(e){notify(storageError(e),true);}};
     panel.append(importButton,namesButton,backup);var main=document.querySelector('main');if(main)main.prepend(panel);
   }
   async function bootstrap(){

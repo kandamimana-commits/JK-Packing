@@ -211,7 +211,7 @@
 
     <div class="month-card" style="margin-top:22px;">
       <p class="section-label">🎉 ปิดรอบเดือน</p>
-      <p class="hint">เลือกเดือนที่ต้องการปิด ระบบจะส่งออกและลบเฉพาะข้อมูลของเดือนนั้น ข้อมูลเดือนอื่นจะยังอยู่ครบ</p>
+      <p class="hint">เลือกเดือนที่ต้องการปิด ระบบจะเก็บข้อมูลพร้อมช่วงวันที่ออเดอร์เป็นแบ็กอัพบน Cloud ก่อนส่งออกไฟล์ ดาวน์โหลดซ้ำได้ในหน้า Export ข้อมูลเดือนอื่นยังอยู่ครบ</p>
       <div style="max-width:340px; margin:12px 0;">
         <label for="finishPackingMonthSelect">เลือกเดือนที่จะปิดรอบ</label>
         <select id="finishPackingMonthSelect"></select>
@@ -241,8 +241,9 @@
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toastMsg"></span></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="packing-storage.js?v=20260926-direct"></script>
-<script src="packing-cloud.js?v=20260926-direct"></script>
+<script src="packing-storage.js?v=20261009-archive"></script>
+<script src="packing-cloud.js?v=20261009-archive"></script>
+<script src="packing-export.js?v=20261009-archive"></script>
 <script>
 function showToast(msg, warn){
   var t = document.getElementById('toast');
@@ -561,19 +562,7 @@ function monthLabelPacking(key){
   return thaiMonthsPacking[parseInt(parts[1])-1] + ' ' + (parseInt(parts[0])+543);
 }
 function exportPackingCSV(sessions, filename){
-  var header = 'วันที่,คนแพ็ค,ชื่อสินค้า,จำนวน\n';
-  var lines = [];
-  sessions.forEach(function(s){
-    (s.products||[]).forEach(function(p){
-      lines.push([s.date, s.packer, '"'+p.product.replace(/"/g,'""')+'"', p.qty].join(','));
-    });
-  });
-  var blob = new Blob(['\uFEFF' + header + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  window.PackingExport.download(sessions,filename);
 }
 function renderFinishPackingMonths(){
   var all = [];
@@ -589,13 +578,13 @@ document.getElementById('finishPackingMonthBtn').addEventListener('click', async
   try{ all = window.PackingCloud.read(); } catch(e){ all = []; }
   var monthSessions = all.filter(function(r){ return r.date && r.date.slice(0,7) === curMonth; });
   if(!monthSessions.length){ showToast('ยังไม่มีข้อมูลของเดือนที่เลือกให้ส่งออก', true); return; }
-  var msg = 'ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' — ส่งออก ' + monthSessions.length + ' รอบงานเป็นไฟล์ แล้วลบเฉพาะข้อมูลเดือนนี้ออกจากเว็บ?\\n\\nดาวน์โหลดไฟล์ไว้ก่อน กดยืนยันแล้วลบออกจากเว็บทันที กู้คืนไม่ได้';
+  var msg = 'ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' จำนวน ' + monthSessions.length + ' รอบงาน? ข้อมูลพร้อมช่วงวันที่ออเดอร์จะเก็บเป็นแบ็กอัพบน Cloud ดาวน์โหลดซ้ำได้ในหน้า Export และไม่รวมในรายการทำงาน';
   if(!confirm(msg)) return;
-  exportPackingCSV(monthSessions, 'คนแพ็ค_' + curMonth + '.csv');
-  try{ await window.PackingCloud.deleteSessions(monthSessions); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
+  try{ await window.PackingCloud.archiveMonth(curMonth,monthSessions); } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message, true); return; }
   renderPackerSummary();
   renderFinishPackingMonths();
-  showToast('ปิดรอบเดือน ' + monthLabelPacking(curMonth) + ' แล้ว');
+  showToast('เก็บแบ็กอัพเดือน ' + monthLabelPacking(curMonth) + ' บน Cloud แล้ว ดาวน์โหลดซ้ำได้ที่ Export');
+  exportPackingCSV(monthSessions, 'คนแพ็ค_' + curMonth + '.csv');
 });
 
 // ===== กรอกเอง (แมนนวล พร้อมรูปหลักฐาน) =====
