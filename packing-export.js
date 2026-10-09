@@ -18,33 +18,4 @@ function download(sessions,name){
  (document.querySelector('main')||document.body).appendChild(a);a.click();
 }
 window.PackingExport={flatten:flat,csv:csv,download:download};
-var select=document.getElementById('archiveSelect'),button=document.getElementById('archiveDownload');
-if(!select)return;
-var message=document.getElementById('archiveStatus'),listBusy=false;
-async function list(){
- if(listBusy)return;listBusy=true;button.disabled=true;
- try{
-  var result=await window.PackingCloud.client.rpc('packing_archive_list');if(result.error)throw result.error;
-  if(!Array.isArray(result.data))throw Error('รายการแบ็กอัพไม่ครบ');
-  var value=select.value;select.replaceChildren();
-  result.data.forEach(function(b){var o=document.createElement('option');o.value=b.id;o.textContent=b.label;select.appendChild(o);});
-  if(result.data.some(function(b){return b.id===value;}))select.value=value;
-  button.disabled=!result.data.length;
-  message.textContent=result.data.length?'เลือกสำเนาที่ต้องการ แต่ละสำเนาแยกกัน ไม่รวมยอดซ้ำ':'ยังไม่มีแบ็กอัพที่ปิดรอบ';
- }catch(e){message.textContent='โหลดแบ็กอัพไม่สำเร็จ: '+(e.code==='PGRST202'?'กรุณารัน packing-archive-upgrade.sql ใน JK-Packing':e.message);}
- finally{listBusy=false;}
-}
-button.onclick=async function(){
- if(button.disabled||!select.value)return;button.disabled=true;select.disabled=true;message.textContent='กำลังอ่านแบ็กอัพจาก Supabase…';
- try{
-  var result=await window.PackingCloud.client.rpc('packing_archive_read',{p_id:select.value});if(result.error)throw result.error;
-  if(!Array.isArray(result.data)||!result.data.length)throw Error('ไม่พบข้อมูลในสำเนาที่เลือก');
-  var rows=flat(result.data),month=rows[0].date.slice(0,7);
-  download(result.data,'คนแพ็ค_'+month+'_backup_'+(select.value.startsWith('csv:')?'CSVเดิม':'Cloud')+'.csv');
-  message.textContent='เตรียมดาวน์โหลด '+rows.length.toLocaleString()+' แถว รวม '+rows.reduce(function(n,r){return n+r.qty;},0).toLocaleString()+' ชิ้น — ข้อมูลยังอยู่ในแบ็กอัพ';
- }catch(e){message.textContent='ดาวน์โหลดไม่สำเร็จ: '+e.message;}
- finally{button.disabled=false;select.disabled=false;}
-};
-document.getElementById('archiveRefresh').onclick=list;
-window.addEventListener('packingcloudready',list);
 })();

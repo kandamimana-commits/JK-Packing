@@ -146,17 +146,8 @@
 
   <main class="main">
     <p class="pagetitle">Export ข้อมูล</p>
-    <p class="pagesub">ดึงข้อมูลงานแพ็คออกมาเป็นไฟล์ ไม่ลบอะไรออกจากเว็บ</p>
+    <p class="pagesub">เลือกเดือนหรือวันที่เพื่อดูและดาวน์โหลด ทั้งงานปัจจุบันและประวัติที่ปิดรอบแล้ว</p>
 
-    <div class="card">
-      <p class="section-label">แบ็กอัพย้อนหลัง</p>
-      <p class="hint">ข้อมูลที่ปิดรอบแล้วเก็บบน Cloud และดาวน์โหลดซ้ำได้ ไม่รวมในงานเดือนใหม่</p>
-      <label for="archiveSelect">เลือกเดือน / สำเนา</label>
-      <select id="archiveSelect"><option value="">กำลังโหลดแบ็กอัพ…</option></select>
-      <p id="archiveStatus" class="hint" role="status" style="margin-top:12px"></p>
-      <button id="archiveDownload" class="btn-main" disabled>ดาวน์โหลดแบ็กอัพ CSV</button>
-      <button id="archiveRefresh" class="btn-ghost">โหลดรายการแบ็กอัพใหม่</button>
-    </div>
     <div class="card">
       <p class="section-label">🗓️ เลือกช่วงที่จะ Export</p>
       <div class="seg-control" style="margin-bottom:18px;">
@@ -173,7 +164,7 @@
         <input type="date" id="exportDayInput" style="max-width:240px;">
       </div>
 
-      <p class="hint" id="exportPreviewText" style="margin-top:14px;"></p>
+      <p class="hint" id="exportPreviewText" role="status" style="margin-top:14px;"></p>
       <button class="btn-main" id="exportGoBtn" style="margin-top:6px;">📤 Export เป็นไฟล์ CSV</button>
     </div>
 
@@ -191,75 +182,116 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="packing-storage.js?v=20261009-archive"></script>
 <script src="packing-cloud.js?v=20261009-archive"></script>
-<script src="packing-export.js?v=20261009-archive"></script>
+<script src="packing-export.js?v=20261009-unified"></script>
 <script>
-function getPackingData(){
-  try{ return window.PackingCloud.read(); } catch(e){ return []; }
-}
-function flattenSessions(sessions){
-  var rows = [];
-  sessions.forEach(function(s){
-    (s.products||[]).forEach(function(p){
-      var rangeLabel = p.orderDateFrom ? (p.orderDateFrom === p.orderDateTo ? p.orderDateFrom : p.orderDateFrom+' ถึง '+(p.orderDateTo||p.orderDateFrom)) : 'ไม่ทราบ';
-      rows.push({date:s.date, packer:s.packer, product:p.product, qty:p.qty, orderRange:rangeLabel});
-    });
-  });
-  return rows;
-}
 
-var exportMode = 'month';
-document.getElementById('segMonth').addEventListener('click', function(){ setExportMode('month'); });
-document.getElementById('segDay').addEventListener('click', function(){ setExportMode('day'); });
+var exportMode='month',exportSessions=[],exportLabel='',exportReady=false,exportFailed=false;
+var requestVersion=0,archiveIndex=null,archiveCache=new Map(),sourceChoice=new Map(),cloudReady=false;
+var previewText=document.getElementById('exportPreviewText'),previewBody=document.getElementById('exportPreviewBody');
+var previewEmpty=document.getElementById('exportPreviewEmpty'),exportButton=document.getElementById('exportGoBtn');
+function getPackingData(){return window.PackingCloud.read();}
+function getFilteredRows(){return window.PackingExport.flatten(exportSessions);}
+function period(){return exportMode==='month'?document.getElementById('exportMonthInput').value:document.getElementById('exportDayInput').value;}
+function samePeriod(s,label,mode){return s.date && (mode==='month'?s.date.slice(0,7)===label:s.date===label);}
+function clearPreview(text){
+ exportSessions=[];exportReady=false;exportFailed=false;exportButton.disabled=true;exportButton.textContent='📤 Export เป็นไฟล์ CSV';
+ previewBody.replaceChildren();previewText.textContent=text;previewEmpty.textContent=text;previewEmpty.style.display='block';
+ var old=document.getElementById('packingDownloadLink');if(old){URL.revokeObjectURL(old.href);old.remove();}
+}
+async function rpc(name,args){
+ var r=await window.PackingCloud.client.rpc(name,args);if(r.error)throw r.error;
+ if(!Array.isArray(r.data))throw Error('ข้อมูลที่ได้รับไม่ครบ');return r.data;
+}
+function index(){
+ if(!archiveIndex){var task=rpc('packing_archive_list');archiveIndex=task;task.catch(function(){if(archiveIndex===task)archiveIndex=null;});}
+ return archiveIndex;
+}
+function readArchive(id){
+ if(!archiveCache.has(id)){
+  var cache=archiveCache,task=rpc('packing_archive_read',{p_id:id});cache.set(id,task);
+  task.catch(function(){if(cache.get(id)===task)cache.delete(id);});
+ }
+ return archiveCache.get(id);
+}
 function setExportMode(mode){
-  exportMode = mode;
-  document.getElementById('segMonth').classList.toggle('active', mode==='month');
-  document.getElementById('segDay').classList.toggle('active', mode==='day');
-  document.getElementById('exportMonthField').style.display = mode==='month' ? 'block' : 'none';
-  document.getElementById('exportDayField').style.display = mode==='day' ? 'block' : 'none';
-  renderExportPreview();
+ exportMode=mode;
+ document.getElementById('segMonth').classList.toggle('active',mode==='month');
+ document.getElementById('segDay').classList.toggle('active',mode==='day');
+ document.getElementById('exportMonthField').style.display=mode==='month'?'block':'none';
+ document.getElementById('exportDayField').style.display=mode==='day'?'block':'none';
+ renderExportPreview();
 }
-
-var now = new Date();
-document.getElementById('exportMonthInput').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-document.getElementById('exportDayInput').valueAsDate = now;
-document.getElementById('exportMonthInput').addEventListener('change', renderExportPreview);
-document.getElementById('exportDayInput').addEventListener('change', renderExportPreview);
-
-function getFilteredRows(){
-  var all = flattenSessions(getPackingData());
-  if(exportMode === 'month'){
-    var m = document.getElementById('exportMonthInput').value; // YYYY-MM
-    if(!m) return [];
-    return all.filter(function(r){ return r.date && r.date.slice(0,7) === m; });
-  } else {
-    var d = document.getElementById('exportDayInput').value; // YYYY-MM-DD
-    if(!d) return [];
-    return all.filter(function(r){ return r.date === d; });
+async function renderExportPreview(){
+ var version=++requestVersion,label=period(),mode=exportMode,month=label.slice(0,7);
+ clearPreview(cloudReady?'กำลังอ่านข้อมูลช่วง '+label+'…':'กำลังรอข้อมูลจาก Supabase…');
+ if(!cloudReady)return;
+ if(!label){clearPreview('เลือกช่วงวันที่ก่อน');return;}
+ try{
+  var backups=(await index()).filter(function(b){return b.month===month;});
+  if(version!==requestVersion)return;
+  var active=getPackingData().filter(function(s){return samePeriod(s,label,mode);});
+  var native=backups.filter(function(b){return b.id.startsWith('native:');});
+  var imports=backups.filter(function(b){return b.id.startsWith('csv:');});
+  var choices=[];
+  if(active.length||native.length)choices.push({id:'cloud',label:'ข้อมูลบน Cloud'});
+  imports.forEach(function(b){choices.push({id:b.id,label:b.label});});
+  var selected=sourceChoice.get(month);
+  if(!choices.some(function(c){return c.id===selected;}))selected=choices.length===1?choices[0].id:null;
+  // Independent CSV copies must never be silently added to live/archived Cloud work.
+  if(choices.length>1){
+   previewText.textContent='เดือนนี้มีข้อมูลหลายแหล่ง เลือกชุดที่จะดูและ Export (ไม่บวกสำเนาซ้ำ): ';
+   choices.forEach(function(c){
+    var button=document.createElement('button');button.type='button';button.className='btn-ghost';
+    button.textContent=c.label;button.setAttribute('aria-pressed',String(c.id===selected));
+    button.onclick=function(){sourceChoice.set(month,c.id);renderExportPreview();};previewText.appendChild(button);
+   });
   }
+  if(!selected&&choices.length){previewEmpty.textContent='เลือกแหล่งข้อมูลด้านบนเพื่อแสดงรายการ';return;}
+  var sessions=active,source='ข้อมูลปัจจุบัน';
+  if(selected==='cloud'){
+   var archived=(await Promise.all(native.map(function(b){return readArchive(b.id);}))).flat();
+   // These sources are disjoint; stable IDs also guard against a stale active snapshot.
+   var combined=new Map();
+   active.concat(archived).forEach(function(s,i){combined.set(s._cloudId||'row:'+i,s);});
+   sessions=Array.from(combined.values());source=native.length?'ข้อมูลบน Cloud รวมประวัติปิดรอบ':'ข้อมูลปัจจุบัน';
+  }else if(selected){
+   sessions=await readArchive(selected);source='ประวัติจากสำเนา CSV';
+  }
+  if(version!==requestVersion)return;
+  exportSessions=sessions.filter(function(s){return samePeriod(s,label,mode);});
+  exportLabel=label;exportReady=true;
+  var rows=getFilteredRows(),total=rows.reduce(function(n,r){return n+r.qty;},0);
+  var message=rows.length?'พบ '+rows.length.toLocaleString()+' รายการ รวม '+total.toLocaleString()+' ชิ้น · '+label+' · '+source:'ไม่พบข้อมูลในช่วง '+label;
+  if(choices.length>1){previewText.appendChild(document.createTextNode(' — '+message));}
+  else previewText.textContent=message;
+  previewEmpty.textContent='ไม่พบข้อมูลในช่วง '+label;previewEmpty.style.display=rows.length?'none':'block';
+  var fragment=document.createDocumentFragment();
+  rows.forEach(function(r){var tr=document.createElement('tr');[r.date,r.packer,r.product,r.qty,r.range].forEach(function(value){var td=document.createElement('td');td.textContent=String(value);tr.appendChild(td);});fragment.appendChild(tr);});
+  previewBody.replaceChildren(fragment);exportButton.disabled=!rows.length;
+ }catch(e){
+  if(version!==requestVersion)return;
+  clearPreview('โหลดข้อมูลไม่สำเร็จ: '+(e.code==='PGRST202'?'ยังไม่มีระบบประวัติปิดรอบในฐานข้อมูล':e.message));
+  exportFailed=true;exportButton.disabled=false;exportButton.textContent='ลองโหลดข้อมูลอีกครั้ง';
+ }
 }
-
-function html(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function renderExportPreview(){
-  var rows = getFilteredRows();
-  var label = exportMode === 'month' ? document.getElementById('exportMonthInput').value : document.getElementById('exportDayInput').value;
-  document.getElementById('exportPreviewText').textContent = rows.length ? ('พบ ' + rows.length + ' รายการ ในช่วง ' + label) : ('ไม่พบข้อมูลในช่วง ' + (label||'ที่เลือก'));
-  var body = document.getElementById('exportPreviewBody');
-  document.getElementById('exportPreviewEmpty').style.display = rows.length ? 'none' : 'block';
-  body.innerHTML = rows.map(function(r){
-    return '<tr><td class="mono" style="font-size:13px;">'+html(r.date)+'</td><td>'+html(r.packer)+'</td><td>'+html(r.product)+'</td><td>'+r.qty+'</td><td style="font-size:13px; color:var(--ink-soft);">'+html(r.orderRange)+'</td></tr>';
-  }).join('');
-}
-
-document.getElementById('exportGoBtn').addEventListener('click', function(){
-  var rows = getFilteredRows();
-  if(!rows.length){ alert('ไม่มีข้อมูลในช่วงที่เลือก'); return; }
-  var label = exportMode === 'month' ? document.getElementById('exportMonthInput').value : document.getElementById('exportDayInput').value;
-  var sessions=getPackingData().filter(function(s){return exportMode==='month'?s.date.slice(0,7)===label:s.date===label;});
-  window.PackingExport.download(sessions,'งานแพ็ค_'+label+'.csv');
+document.getElementById('segMonth').onclick=function(){setExportMode('month');};
+document.getElementById('segDay').onclick=function(){setExportMode('day');};
+document.getElementById('exportMonthInput').addEventListener('change',renderExportPreview);
+document.getElementById('exportDayInput').addEventListener('change',renderExportPreview);
+var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+function datePart(type){return parts.find(function(p){return p.type===type;}).value;}
+var today=datePart('year')+'-'+datePart('month')+'-'+datePart('day');
+document.getElementById('exportMonthInput').value=today.slice(0,7);
+document.getElementById('exportDayInput').value=today;
+exportButton.onclick=function(){
+ if(exportFailed){renderExportPreview();return;}
+ if(!exportReady||exportButton.disabled||exportLabel!==period())return;
+ window.PackingExport.download(exportSessions,'งานแพ็ค_'+exportLabel+'.csv');
+};
+window.addEventListener('packingcloudready',function(){
+ cloudReady=true;archiveIndex=null;archiveCache=new Map();renderExportPreview();
 });
-
 renderExportPreview();
-window.addEventListener('packingcloudready', renderExportPreview);
 </script>
 
 </body>
